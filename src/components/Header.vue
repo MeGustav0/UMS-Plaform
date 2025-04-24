@@ -8,7 +8,7 @@
     <!-- Секция проектов -->
     <div class="projects-section">
       <div 
-        v-for="project in projects" 
+        v-for="project in $store.getters['projects/userProjects']" 
         :key="project.id"
         class="project-tab"
         :class="{ active: isActive(project.id) }"

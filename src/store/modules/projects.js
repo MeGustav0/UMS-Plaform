@@ -1,64 +1,57 @@
 export default {
   namespaced: true,
   state: () => ({
-    projects: [
-      // Пример структуры проекта
-      {
-        id: 1,
-        name: "Проект 1",
-        activities: [
-          {
-            id: 1,
-            title: "Дизайн",
-            owner: "Иван Петров",
-            description: "Разработка UI/UX",
-            startDate: "2023-01-01",
-            endDate: "2023-12-31",
-            tasks: [
-              {
-                id: 1,
-                title: "Создать макет",
-                assignee: "Анна Сидорова",
-                description: "Мобильная версия",
-                status: "progress",
-                startDate: "2023-01-01", // Добавляем
-                endDate: "2023-06-30"
-              }
-            ]
-          }
-        ],
-        members: [
-          { id: 1, role: "admin" }, // id пользователя из auth.js
-          { id: 2, role: "manager" }
-        ]
-      }
-    ]
+    projects: JSON.parse(localStorage.getItem('projects')) || []
   }),
+  actions: {
+    async deleteProject({ commit, rootState }, projectId) {
+      // Удаляем проект
+      commit('DELETE_PROJECT', projectId);
+  
+      // Обновляем пользователей
+      const updatedUsers = rootState.auth.users.map(user => ({
+        ...user,
+        projects: user.projects.filter(id => id !== projectId)
+      }));
+  
+      commit('auth/UPDATE_USERS', updatedUsers, { root: true });
+    }
+  },
   mutations: {
     INIT_PROJECTS(state, projects) {
       state.projects = projects;
     },
+    // ADD_PROJECT(state, project) {
+    //   state.projects.push({
+    //     ...project,
+    //     orgId: project.orgId, // Привязка к организации
+    //     activities: project.activities || []
+    //   })
+    //   localStorage.setItem('projects', JSON.stringify(state.projects))
+    // },
     ADD_PROJECT(state, project) {
-      console.log('Добавляем проект в хранилище:', project);
-      state.projects.push({
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        organization: project.organization || '',
-        startDate: project.startDate || new Date().toISOString(),
-        endDate: project.endDate || null,
-        created: project.created,
-        members: project.members || [],
-        activities: project.activities || []
-      });
-      this.commit('auth/UPDATE_USER_PROJECTS', 
-        [...this.state.auth.user.projects, project.id]
-      )
+      const creatorId = this.state.auth.user.id;
+  
+      const newProject = {
+        ...project,
+        members: [{ userId: creatorId, role: 'admin' }], // Создатель становится админом
+        activities: []
+      };
+  
+      if (state.projects.some(p => p.name === newProject.name)) {
+        throw new Error('Проект с таким именем уже существует');
+      }
+  
+      state.projects.push(newProject);
+      this.commit("auth/UPDATE_USER_PROJECTS", newProject.id);
     },
     UPDATE_PROJECT(state, updatedProject) {
       const index = state.projects.findIndex(p => p.id === updatedProject.id)
       if (index !== -1) {
         state.projects.splice(index, 1, updatedProject)
+      }
+      if (!getters['auth/canEditProject'](updatedProject)) {
+        throw new Error('Нет прав для редактирования');
       }
     },
     // Обновление активности
@@ -123,6 +116,20 @@ export default {
           ...task // Полное обновление задачи
         });
       }
+    },
+    UPDATE_USERS(state, users) {
+      state.users = users;
+      localStorage.setItem('users', JSON.stringify(users));
+    },
+    UPDATE_USER_PROJECTS(state, projectId) {
+      if (!state.user.projects) {
+        state.user.projects = [];
+      }
+      state.user.projects.push(projectId);
+      localStorage.setItem("auth", JSON.stringify(state.user));
+    },
+    DELETE_PROJECT(state, projectId) {
+      state.projects = state.projects.filter(p => p.id !== projectId);
     }
   },
   getters: {
@@ -140,11 +147,11 @@ export default {
         completed: allTasks.filter(t => t.status === 'done').length
       }
     },
-    userProjects: (state, getters, rootState) => { // Добавляем rootState
-      const userId = rootState.auth.user?.id; // Доступ к auth через rootState
+    userProjects: (state, getters, rootState) => {
+      const userId = rootState.auth.user?.id;
       return state.projects.filter(p => 
-        p.members?.some(m => m.id === userId) ?? []
-      )
+        p.members?.some(m => m.id === userId) 
+      );
     }
   },
 }

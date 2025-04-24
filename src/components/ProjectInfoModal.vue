@@ -5,7 +5,7 @@
         <div>
           <h2>Редактирование проекта</h2>
           <div v-if="$store.getters['auth/isAdmin']" class="footer">
-            <button v-if="canDelete" @click="confirmDelete" class="delete-btn">
+            <button v-if="$store.getters['auth/canDeleteProject']" @click="deleteProject" class="delete-btn">
               Удалить проект
             </button>
           </div>
@@ -81,60 +81,63 @@
   </div>
 </template>
   
-  <script>
-  export default {
-    props: ['project'],
-    data() {
-      return {
-        localProject: {...this.project},
-        isAdmin: this.$store.state.auth.user?.role === 'admin'
+<script>
+export default {
+  props: ['project'],
+  data() {
+    return {
+      localProject: {...this.project},
+      isAdmin: this.$store.state.auth.user?.role === 'admin'
+    }
+  },
+  computed: {
+    canEdit() {
+        const user = this.$store.state.auth.user
+        return user.role === 'admin' || 
+        this.project.managers.includes(user.id)
+    },
+    canDelete() {
+      return this.$store.getters["auth/isAdmin"];
+    }
+  },
+  methods: {
+    save() {
+        this.$emit('save', this.localProject)
+        this.$emit('close')
+    },
+    addUserToProject(userId, role) {
+        const project = this.project
+        if (role === 'manager') {
+            project.managers = [...new Set([...project.managers, userId])]
+        } else {
+            project.members = [...new Set([...project.members, userId])]
+        }
+        this.$store.commit('projects/UPDATE_PROJECT', project)
+    },
+    addMember() {
+      const user = this.$store.state.auth.users.find(u => 
+        u.email === this.newMemberEmail.trim()
+      )
+      if (user) {
+        this.localProject.members.push({
+          id: user.id,
+          email: user.email,
+          role: 'member'
+        })
       }
     },
-      computed: {
-        canEdit() {
-            const user = this.$store.state.auth.user
-            return user.role === 'admin' || 
-            this.project.managers.includes(user.id)
-        },
-        canDelete() {
-          return this.$store.getters["auth/isAdmin"];
-        }
-      },
-      methods: {
-        save() {
-            this.$emit('save', this.localProject)
-            this.$emit('close')
-        },
-        addUserToProject(userId, role) {
-            const project = this.project
-            if (role === 'manager') {
-                project.managers = [...new Set([...project.managers, userId])]
-            } else {
-                project.members = [...new Set([...project.members, userId])]
-            }
-            this.$store.commit('projects/UPDATE_PROJECT', project)
-        },
-        addMember() {
-          const user = this.$store.state.auth.users.find(u => 
-            u.email === this.newMemberEmail.trim()
-          )
-          if (user) {
-            this.localProject.members.push({
-              id: user.id,
-              email: user.email,
-              role: 'member'
-            })
-          }
-        },
-        confirmDelete() {
-          if (confirm("Вы уверены, что хотите удалить проект?")) {
-            this.$store.commit("projects/DELETE_PROJECT", this.project.id);
-            this.$emit("close");
-          }
-        },
-      }
-    }
-  </script>
+    deleteProject() {
+      this.$store.dispatch('projects/deleteProject', this.project.id)
+        .then(() => {
+          this.$router.push('/');
+        })
+        .catch(err => {
+          console.error('Ошибка удаления:', err);
+      });
+    },
+  }
+}
+</script>
   
 <style scoped>
 .modal-overlay {

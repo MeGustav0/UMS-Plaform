@@ -89,6 +89,9 @@ export default {
     },
     canEdit() {
       return this.isAdmin || this.isManager
+    },
+    projectExists() {
+      return this.$store.getters['projects/getProjectById'](this.projectId)
     }
   },
   methods: {

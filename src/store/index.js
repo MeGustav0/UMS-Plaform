@@ -1,6 +1,7 @@
 import { createStore } from 'vuex'
 import auth from './modules/auth'
 import projects from './modules/projects'
+import organizations from './modules/organizations'
 
 export default createStore({
   state: {
@@ -14,6 +15,7 @@ export default createStore({
   modules: {
     auth,
     projects,
+    organizations
   },
   plugins: [
     (store) => {
@@ -40,6 +42,6 @@ if (savedProjects) {
       store.commit('projects/INIT_PROJECTS', parsed);
     }
   } catch (e) {
-    console.error('Ошибка загрузки проектов:', e);
+    // console.error('Ошибка загрузки проектов:', e);
   }
 }

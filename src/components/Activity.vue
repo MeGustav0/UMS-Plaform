@@ -4,13 +4,13 @@
         <div class="activity-top">
           <h4 style="margin: 0px;">{{ activity.title }}</h4>
           <div class="activity-actions">
-            <button @click="openEdit('activity')" class="edit-btn pink hover"><img class="img_edit" src="../assets/edit.svg" alt=""></button>
+            <button v-if="$store.getters['auth/canEditProject'](project)" @click="openEdit('activity')" class="edit-btn pink hover"><img class="img_edit" src="../assets/edit.svg" alt=""></button>
             <button @click="deleteActivity" class="delete-btn pink hover">✖</button>
           </div>
         </div>
-        <div class="description pink">
+        <!-- <div class="description pink">
           {{ activity.description || 'Нет описания' }}
-        </div>
+        </div> -->
         <div class="description pink">
           <span>Ответственный: {{ activity.owner || 'Не назначен' }}</span>
         </div>
@@ -51,7 +51,7 @@
                 <button @click="deleteTask(task.id)" class="delete-btn yellow hover_task">✖</button>
               </div>
             </div>
-            <div class="description yellow">{{ task.description || 'Нет описания' }}</div>
+            <!-- <div class="description yellow">{{ task.description || 'Нет описания' }}</div> -->
             <div class="description yellow">Исполнитель: {{ task.assignee || 'Не назначен' }}</div>
             <div class="description yellow">Начало: {{ formatDate(task.startDate) }}</div>
             <div class="description yellow">Дедлайн: {{ formatDate(task.endDate) }}</div>

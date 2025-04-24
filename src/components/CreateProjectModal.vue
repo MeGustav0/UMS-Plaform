@@ -14,6 +14,18 @@
           <span v-if="errors.name" class="error-text">{{ errors.name }}</span>
         </div>
 
+        <div class="form-group">
+          <label>Организация:</label>
+          <select v-model="selectedOrg">
+            <option 
+              v-for="org in userOrgs" 
+              :value="org.orgId"
+              :key="org.orgId"
+            >
+              {{ getOrgName(org.orgId) }}
+            </option>
+          </select>
+        </div>
         <!-- Описание -->
         <div class="form-group">
           <label>Описание:</label>
@@ -103,6 +115,9 @@ export default {
   computed: {
     allUsers() {
       return this.$store.state.auth.users || []
+    },
+    userOrgs() {
+      return this.$store.state.auth.user.organizations
     }
   },
   methods: {
@@ -110,17 +125,23 @@ export default {
     addMember() {
       this.members.push({ email: '', role: 'member' })
     },
-
     // Удаление участника
     removeMember(index) {
       this.members.splice(index, 1)
     },
-
     // Валидация email
-    validateEmail(email) {
-      return /^\S+@\S+\.\S+$/.test(email)
+    validateMember(email) {
+      const exists = this.$store.state.auth.users.some(u => u.email === email)
+      return exists ? true : 'Пользователь не найден'
     },
-
+    validateEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    },
+    getOrgName(orgId) {
+      return this.$store.state.organizations.organizations
+        .find(o => o.id === orgId)?.name
+    },
     // Проверка формы
     validateForm() {
       this.errors = {}
@@ -157,51 +178,40 @@ export default {
     },
 
     // Создание проекта
-    async handleSubmit() {
-      if (!this.validateForm()) return;
-      this.isSubmitting = true;
+    handleSubmit() {
+    try {
+      // Проверка email участников
+      const invalidEmails = this.form.members
+        .split(',')
+        .map(e => e.trim())
+        .filter(e => e && !this.validateEmail(e));
 
-      try {
-        const creator = this.$store.state.auth.user;
-        
-        // Проверка, что создатель авторизован
-        if (!creator) {
-          throw new Error("Ошибка: пользователь не авторизован");
-        }
-
-        // Формируем список участников, исключая создателя (чтобы избежать дубликатов)
-        const members = this.members
-          .filter(m => m.email.trim() !== creator.email) // Удаляем создателя из списка участников формы
-          .map(m => {
-            const user = this.allUsers.find(u => u.email === m.email.trim());
-            return user ? { ...user, role: m.role } : null;
-          })
-          .filter(Boolean);
-
-        // Создаем проект
-        const project = {
-          id: Date.now(),
-          name: this.form.name.trim(),
-          description: this.form.description.trim(),
-          deadline: this.form.deadline || null,
-          created: new Date().toISOString(),
-          members: [
-            // Добавляем создателя как администратора (обязательно)
-            { ...creator, role: "admin" },
-            ...members
-          ],
-          activities: []
-        };
-
-        this.$store.commit("projects/ADD_PROJECT", project);
-        this.$emit("close");
-      } catch (error) {
-        console.error("Ошибка создания проекта:", error);
-        alert(error.message);
-      } finally {
-        this.isSubmitting = false;
+      if (invalidEmails.length > 0) {
+        throw new Error(`Некорректные email: ${invalidEmails.join(', ')}`);
       }
+
+      // Создание проекта
+      const project = {
+        ...this.form,
+        id: Date.now(),
+        orgId: this.selectedOrgId,
+        members: this.form.members
+          .split(',')
+          .filter(e => e.trim())
+          .map(email => ({
+            email: email.trim(),
+            role: 'member'
+          }))
+      };
+
+      this.$store.commit('projects/ADD_PROJECT', project);
+      this.$emit('close');
+
+    } catch (error) {
+      console.error('Ошибка создания проекта:', error);
+      alert(error.message);
     }
+  }
   }
 }
 </script>
