@@ -7,15 +7,14 @@
 
     <!-- Секция проектов -->
     <div class="projects-section">
-      <div 
-        v-for="project in $store.getters['projects/userProjects']" 
+      <router-link 
+        v-for="project in userProjects"
         :key="project.id"
-        class="project-tab"
-        :class="{ active: isActive(project.id) }"
-        @click="openProject(project.id)"
+        :to="`/project/${project.id}`"
+        class="project-tab hover"
       >
         {{ project.name }}
-      </div>
+      </router-link>
       <button 
         class="new-project-btn hover" 
         @click="showProjectModal = true"
@@ -30,7 +29,10 @@
         class="profile-info hover" 
         @click="toggleProfileMenu"
       >
-        <span class="username">{{ user.name }} ({{ user.role }})</span>
+      <span class="username">
+        {{ user.name }}
+        <span v-if="currentOrgRole">({{ currentOrgRole }})</span>
+      </span>
       </div>
       
       <div 
@@ -75,6 +77,17 @@ export default {
     },
     user() {
       return this.$store.state.auth.user || { name: 'Гость', role: 'Не авторизован' }
+    },
+    currentOrgRole() {
+      const currentProject = this.$store.getters['projects/userProjects']
+        .find(p => p.id === this.$route.params.id);
+      return this.$store.getters['organizations/getUserRole'](
+        currentProject?.orgId,
+        this.user.id
+      );
+    },
+    userProjects() {
+      return this.$store.getters['projects/userProjects'];
     }
   },
   methods: {

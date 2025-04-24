@@ -10,72 +10,58 @@
             v-model="form.name"
             placeholder="Введите название"
             :class="{ 'input-error': errors.name }"
+            required
           >
-          <span v-if="errors.name" class="error-text">{{ errors.name }}</span>
         </div>
 
+        <!-- Выбор организации -->
         <div class="form-group">
           <label>Организация:</label>
-          <select v-model="selectedOrg">
+          <select 
+            v-model="selectedOrg" 
+            required
+            :disabled="!userOrgs.length"
+          >
             <option 
               v-for="org in userOrgs" 
-              :value="org.orgId"
-              :key="org.orgId"
+              :value="org.id"
+              :key="org.id"
             >
-              {{ getOrgName(org.orgId) }}
+              {{ org.name }}
             </option>
           </select>
-        </div>
-        <!-- Описание -->
-        <div class="form-group">
-          <label>Описание:</label>
-          <textarea
-            v-model="form.description"
-            placeholder="Добавьте описание проекта"
-          ></textarea>
+          <p v-if="!userOrgs.length" class="error-text">
+            Сначала создайте организацию в профиле
+          </p>
         </div>
 
-        <!-- Участники и роли -->
+        <!-- Участники из организации -->
         <div class="form-group">
-          <label>Участники:</label>
+          <label>Добавить участников:</label>
           <div class="members-list">
             <div 
-              v-for="(member, index) in members"
-              :key="index"
-              class="member-row"
+              v-for="member in orgMembers" 
+              :key="member.userId"
+              class="member-item"
             >
-              <input
-                v-model="member.email"
-                placeholder="Email участника"
-                :class="{ 'input-error': errors[`member-${index}`] }"
+              <label>
+                <input 
+                  type="checkbox" 
+                  :value="member.userId" 
+                  v-model="selectedMembers"
+                >
+                {{ getUserName(member.userId) }}
+              </label>
+              <select 
+                v-model="memberRoles[member.userId]"
+                v-if="selectedMembers.includes(member.userId)"
               >
-              <select v-model="member.role">
                 <option value="manager">Менеджер</option>
                 <option value="member">Исполнитель</option>
+                <option value="admin">Админ</option>
               </select>
-              <button 
-                type="button" 
-                class="remove-btn"
-                @click="removeMember(index)"
-              >×</button>
             </div>
-            <button 
-              type="button" 
-              class="add-member-btn"
-              @click="addMember"
-            >+ Добавить участника</button>
           </div>
-          <span v-if="errors.members" class="error-text">{{ errors.members }}</span>
-        </div>
-
-        <!-- Дедлайн -->
-        <div class="form-group">
-          <label>Дедлайн:</label>
-          <input
-            type="date"
-            v-model="form.deadline"
-            :min="new Date().toISOString().split('T')[0]"
-          >
         </div>
 
         <!-- Кнопки -->
@@ -84,7 +70,9 @@
             type="button" 
             class="cancel-btn"
             @click="$emit('close')"
-          >Отмена</button>
+          >
+            Отмена
+          </button>
           <button 
             type="submit" 
             class="submit-btn"
@@ -107,109 +95,68 @@ export default {
         description: '',
         deadline: ''
       },
-      members: [],
+      selectedOrg: null,
+      selectedMembers: [],
+      memberRoles: {},
       errors: {},
       isSubmitting: false
     }
   },
   computed: {
-    allUsers() {
-      return this.$store.state.auth.users || []
+    orgMembers() {
+      if (!this.selectedOrg) return []
+      const org = this.$store.state.organizations.organizations
+        .find(o => o.id === this.selectedOrg)
+      return org?.members || []
     },
     userOrgs() {
-      return this.$store.state.auth.user.organizations
-    }
+      // Используем рабочий геттер
+      return this.$store.getters['organizations/userOrganizations'] || []
+    },
   },
   methods: {
-    // Добавление участника
-    addMember() {
-      this.members.push({ email: '', role: 'member' })
-    },
-    // Удаление участника
-    removeMember(index) {
-      this.members.splice(index, 1)
-    },
-    // Валидация email
-    validateMember(email) {
-      const exists = this.$store.state.auth.users.some(u => u.email === email)
-      return exists ? true : 'Пользователь не найден'
-    },
-    validateEmail(email) {
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return re.test(email);
-    },
-    getOrgName(orgId) {
-      return this.$store.state.organizations.organizations
-        .find(o => o.id === orgId)?.name
-    },
-    // Проверка формы
-    validateForm() {
-      this.errors = {}
-      let isValid = true
 
-      // Проверка названия
-      if (!this.form.name.trim()) {
-        this.errors.name = 'Обязательное поле'
-        isValid = false
-      }
-
-      // Проверка участников
-      this.members.forEach((member, index) => {
-        if (!member.email) return
-        if (!this.validateEmail(member.email)) {
-          this.errors[`member-${index}`] = 'Некорректный email'
-          isValid = false
-        }
-        
-        const userExists = this.allUsers.some(u => u.email === member.email)
-        if (!userExists) {
-          this.errors[`member-${index}`] = 'Пользователь не найден'
-          isValid = false
-        }
-      });
-      this.members.forEach((member, index) => {
-        if (member.email === this.$store.state.auth.user?.email) {
-          this.errors[`member-${index}`] = "Вы не можете изменять свою роль";
-          isValid = false;
-        }
-      });
-
-      return isValid
+    getUserName(userId) {
+      const user = this.$store.state.auth.users.find(u => u.id === userId)
+      return user?.name || 'Неизвестный'
     },
-
+    
     // Создание проекта
-    handleSubmit() {
+    async handleSubmit() {
     try {
-      // Проверка email участников
-      const invalidEmails = this.form.members
-        .split(',')
-        .map(e => e.trim())
-        .filter(e => e && !this.validateEmail(e));
+      // Получаем ID создателя
+      const creatorId = this.$store.state.auth.user.id;
 
-      if (invalidEmails.length > 0) {
-        throw new Error(`Некорректные email: ${invalidEmails.join(', ')}`);
+      // Формируем список участников
+      const members = this.selectedMembers.map(userId => ({
+        userId,
+        role: this.memberRoles[userId] || 'member' // Роль по умолчанию
+      }));
+
+      // Добавляем создателя, если его нет в списке
+      if (!members.some(m => m.userId === creatorId)) {
+        members.push({ userId: creatorId, role: 'admin' });
       }
 
-      // Создание проекта
+      // Создаем проект
       const project = {
-        ...this.form,
         id: Date.now(),
-        orgId: this.selectedOrgId,
-        members: this.form.members
-          .split(',')
-          .filter(e => e.trim())
-          .map(email => ({
-            email: email.trim(),
-            role: 'member'
-          }))
+        name: this.form.name,
+        description: this.form.description,
+        deadline: this.form.deadline,
+        orgId: this.selectedOrg,
+        creatorId,
+        members, // Сохраняем участников
+        activities: []
       };
 
+      // Сохраняем в хранилище
       this.$store.commit('projects/ADD_PROJECT', project);
       this.$emit('close');
-
+      
     } catch (error) {
-      console.error('Ошибка создания проекта:', error);
-      alert(error.message);
+      console.error('Ошибка:', error);
+      alert('Не удалось создать проект');
     }
   }
   }

@@ -6,6 +6,7 @@ import store from './store'
 
 const app = createApp(App)
 app.use(store)
+store.dispatch('organizations/initState'); 
 app.use(router)
 
 const savedUser = localStorage.getItem('auth')

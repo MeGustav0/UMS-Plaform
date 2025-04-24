@@ -1,140 +1,187 @@
 <template>
-    <div v-if="canEdit">
-    <div class="modal-overlay">
-      <div class="modal">
-        <div>
-          <h2>Редактирование проекта</h2>
-          <div v-if="$store.getters['auth/isAdmin']" class="footer">
-            <button v-if="$store.getters['auth/canDeleteProject']" @click="deleteProject" class="delete-btn">
-              Удалить проект
-            </button>
-          </div>
+  <div class="modal-overlay">
+    <div class="modal">
+      <h3>Редактирование проекта</h3>
+      <form @submit.prevent="save">
+        <!-- Основная информация -->
+        <div class="form-group">
+          <label>Название:</label>
+          <input v-model="localProject.name" required>
         </div>
-        <form @submit.prevent="save">
-          <div class="form-group">
-            <label>Название:</label>
-            <input v-model="localProject.name" :disabled="!isAdmin">
-          </div>
 
-          <div class="form-group">
-            <label>Организация:</label>
-            <input 
-              v-model="localProject.organization" 
-              :disabled="!isAdmin"
-            >
-          </div>
+        <div class="form-group">
+          <label>Описание:</label>
+          <textarea v-model="localProject.description"></textarea>
+        </div>
 
-          <div class="form-group">
-            <label>Описание:</label>
-            <textarea 
-              v-model="localProject.description" 
-              :disabled="!isAdmin"
-            ></textarea>
-          </div>
+        <!-- Управление участниками -->
+        <div class="members-section">
+          <h4>Участники проекта</h4>
 
-          <div class="form-group">
-            <label>Дедлайн:</label>
-            <input 
-              type="date" 
-              v-model="localProject.endDate" 
-              :min="localProject.startDate"
-              :disabled="!isAdmin"
-            >
-          </div>
-  
-          <div class="form-group">
-            <label>Добавить участника:</label>
-            <input 
-              v-model="newMemberEmail"
-              placeholder="Добавить по email"
-              @keyup.enter="addMember"
-            >
-          </div>
-          <div class="user-list">
-            <h2>Участники:</h2>
+          <!-- Выбор из членов организации -->
+          <div class="members-selector">
             <div 
-              v-for="user in localProject.members" 
-              :key="user.id"
-              class="user-item"
+              v-for="member in orgMembers"
+              :key="member.userId"
+              class="member-item"
             >
-              <span>{{ user.name }}</span>
-              <select 
-                v-model="user.role" 
-                :disabled="!isAdmin"
-              >
-                <option value="member">Участник</option>
-                <option value="admin">Администратор</option>
+              <label>
+                <input
+                  type="checkbox"
+                  :value="member.userId"
+                  v-model="selectedMembers"
+                >
+                {{ getUserName(member.userId) }}
+              </label>
+              <select v-model="memberRoles[member.userId]">
+                <option value="admin">Админ</option>
+                <option value="manager">Менеджер</option>
+                <option value="member">Исполнитель</option>
               </select>
             </div>
+            <button 
+              type="button" 
+              @click="addMembers"
+              class="add-btn"
+            >
+              Добавить выбранных
+            </button>
           </div>
-  
-          <div class="modal-actions">
-            <button type="button" @click="$emit('close')">Закрыть</button>
-            <button type="submit" v-if="isAdmin">Сохранить</button>
+
+          <!-- Текущие участники -->
+          <div class="current-members">
+            <div
+              v-for="member in localProject.members"
+              :key="member.userId"
+              class="member-row"
+            >
+              <span>{{ getUserName(member.userId) }}</span>
+              <div class="role-actions">
+                <span class="role-badge">{{ member.role }}</span>
+                <button 
+                  v-if="canEdit"
+                  @click="removeMember(member.userId)"
+                  class="remove-btn"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
           </div>
-        </form>
-      </div>
+        </div>
+
+        <!-- Кнопки управления -->
+        <div class="modal-actions">
+          <button 
+            v-if="canDelete"
+            type="button" 
+            @click="deleteProject"
+            class="delete-btn"
+          >
+            Удалить проект
+          </button>
+          <button 
+            type="button"
+            @click="$emit('close')"
+            class="cancel-btn"
+          >
+            Отмена
+          </button>
+          <button 
+            type="submit"
+            class="save-btn"
+          >
+            Сохранить
+          </button>
+        </div>
+      </form>
     </div>
   </div>
-  <div v-else>
-    <p>У вас нет прав для редактирования этого проекта</p>
-  </div>
 </template>
-  
+
 <script>
 export default {
   props: ['project'],
   data() {
     return {
-      localProject: {...this.project},
-      isAdmin: this.$store.state.auth.user?.role === 'admin'
+      localProject: {
+        ...this.project,
+        members: this.project.members || []
+      },
+      selectedMembers: [],
+      memberRoles: {}
     }
   },
   computed: {
-    canEdit() {
-        const user = this.$store.state.auth.user
-        return user.role === 'admin' || 
-        this.project.managers.includes(user.id)
+    // Получаем участников организации
+    orgMembers() {
+      if (!this.localProject.orgId) return [];
+      const org = this.$store.state.organizations.organizations.find(
+        o => o.id === this.localProject.orgId
+      );
+      return org?.members || [];
     },
+
+    // Проверка прав на редактирование
+    canEdit() {
+      if (!this.$store.state.auth.user) return false;
+      const userRole = this.$store.getters['organizations/getUserRole'](
+        this.localProject.orgId,
+        this.$store.state.auth.user.id
+      );
+      return ['admin', 'manager'].includes(userRole);
+    },
+
+    // Проверка прав на удаление
     canDelete() {
-      return this.$store.getters["auth/isAdmin"];
+      return (
+        this.localProject.creatorId === this.$store.state.auth.user?.id ||
+        this.canEdit
+      );
     }
   },
   methods: {
-    save() {
-        this.$emit('save', this.localProject)
-        this.$emit('close')
-    },
-    addUserToProject(userId, role) {
-        const project = this.project
-        if (role === 'manager') {
-            project.managers = [...new Set([...project.managers, userId])]
-        } else {
-            project.members = [...new Set([...project.members, userId])]
+    // Добавление выбранных участников
+    addMembers() {
+      this.selectedMembers.forEach(userId => {
+        const exists = this.localProject.members.some(m => m.userId === userId);
+        if (!exists) {
+          this.localProject.members.push({
+            userId,
+            role: this.memberRoles[userId] || 'member'
+          });
         }
-        this.$store.commit('projects/UPDATE_PROJECT', project)
+      });
+      this.selectedMembers = [];
     },
-    addMember() {
-      const user = this.$store.state.auth.users.find(u => 
-        u.email === this.newMemberEmail.trim()
-      )
-      if (user) {
-        this.localProject.members.push({
-          id: user.id,
-          email: user.email,
-          role: 'member'
-        })
+
+    // Удаление участника
+    removeMember(userId) {
+      this.localProject.members = this.localProject.members.filter(
+        m => m.userId !== userId
+      );
+    },
+
+    // Сохранение изменений
+    save() {
+      this.$store.commit('projects/UPDATE_PROJECT', this.localProject);
+      this.$emit('close');
+    },
+
+    // Удаление проекта
+    deleteProject() {
+      if (confirm('Удалить проект?')) {
+        this.$store.commit('projects/DELETE_PROJECT', this.localProject.id);
+        this.$emit('close');
+        this.$router.push('/');
       }
     },
-    deleteProject() {
-      this.$store.dispatch('projects/deleteProject', this.project.id)
-        .then(() => {
-          this.$router.push('/');
-        })
-        .catch(err => {
-          console.error('Ошибка удаления:', err);
-      });
-    },
+
+    // Получение имени пользователя
+    getUserName(userId) {
+      const user = this.$store.state.auth.users.find(u => u.id === userId);
+      return user?.name || 'Неизвестный';
+    }
   }
 }
 </script>

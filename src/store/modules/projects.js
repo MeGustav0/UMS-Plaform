@@ -30,20 +30,12 @@ export default {
     //   localStorage.setItem('projects', JSON.stringify(state.projects))
     // },
     ADD_PROJECT(state, project) {
-      const creatorId = this.state.auth.user.id;
-  
       const newProject = {
         ...project,
-        members: [{ userId: creatorId, role: 'admin' }], // Создатель становится админом
-        activities: []
+        members: project.members || [] // Гарантируем массив
       };
-  
-      if (state.projects.some(p => p.name === newProject.name)) {
-        throw new Error('Проект с таким именем уже существует');
-      }
-  
       state.projects.push(newProject);
-      this.commit("auth/UPDATE_USER_PROJECTS", newProject.id);
+      localStorage.setItem('projects', JSON.stringify(state.projects));
     },
     UPDATE_PROJECT(state, updatedProject) {
       const index = state.projects.findIndex(p => p.id === updatedProject.id)
@@ -67,7 +59,10 @@ export default {
     // Добавление активности
     ADD_ACTIVITY(state, { projectId, activity }) {
       const project = state.projects.find(p => p.id === projectId);
-      if (project) project.activities.push(activity);
+      if (project) {
+        project.activities.push(activity);
+        localStorage.setItem('projects', JSON.stringify(state.projects));
+      }
     },
     
     // Добавление задачи
@@ -149,9 +144,13 @@ export default {
     },
     userProjects: (state, getters, rootState) => {
       const userId = rootState.auth.user?.id;
-      return state.projects.filter(p => 
-        p.members?.some(m => m.id === userId) 
+      return state.projects.filter(project => 
+        project.creatorId === userId || 
+        project.members.some(m => m.userId === userId)
       );
+    },
+    orgProjects: (state) => (orgId) => {
+      return state.projects.filter(project => project.orgId === orgId);
     }
   },
 }

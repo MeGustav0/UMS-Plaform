@@ -1,11 +1,11 @@
 <template>
-  <div class="sidebar">
+  <div class="sidebar" v-if="project">
 
       <div class="project-header">
       <button 
-        v-if="isAdmin"
-        @click="openEdit"
-        class="edit-btn"
+      v-if="isAdmin && project"
+      @click="openEdit"
+      class="edit-btn"
       >{{ project.name }}</button>
       
     <ProjectInfoModal
@@ -34,7 +34,13 @@ import ProjectInfoModal from '@/components/ProjectInfoModal.vue'
 
 export default {
   components: { ProjectInfoModal },
-  props: ['project', 'currentTab'],
+  props: {
+    project: {
+      type: Object,
+      required: true,
+      validator: (p) => p.id && p.orgId // Проверка обязательных полей
+    }
+  },
   data() {
     return {
       showProjectModal: false,
@@ -47,8 +53,12 @@ export default {
   },
   computed: {
     isAdmin() {
-      return this.$store.state.auth.user?.role === 'admin'
-    }
+    // Используем новый геттер для проверки роли в организации
+    return this.$store.getters['organizations/getUserRole'](
+      this.project.orgId,
+      this.$store.state.auth.user?.id
+    ) === 'admin';
+  }
   },
   methods: {
     formatDate(dateString) {
@@ -62,7 +72,8 @@ export default {
       })
     },
     openEdit() {
-      this.showProjectModal = true
+      console.log('Project data:', this.project);
+      this.showProjectModal = true;
     },
     handleSave(updatedProject) {
       this.$store.commit('projects/UPDATE_PROJECT', updatedProject)

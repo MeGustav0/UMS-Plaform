@@ -14,8 +14,9 @@ export default createStore({
   },
   modules: {
     auth,
+    organizations,
     projects,
-    organizations
+
   },
   plugins: [
     (store) => {

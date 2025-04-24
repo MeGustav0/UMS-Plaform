@@ -3,6 +3,7 @@ import store from '@/store' // Добавляем импорт хранилищ�
 import Home from '@/views/Home.vue'
 import ProjectView from '@/views/ProjectView.vue'
 import Login from '@/views/Login.vue'
+import Profile from '../views/Profile.vue'
 
 const routes = [
   {
@@ -14,7 +15,10 @@ const routes = [
   {
     path: '/project/:id',
     component: ProjectView,
-    meta: { requiresAuth: true, checkProject: true }
+    meta: { 
+      requiresAuth: true,
+      requiresOrgAuth: true // Новая метка
+    }
   },
   {
     path: '/register',
@@ -40,17 +44,31 @@ const router = createRouter({
   routes
 })
 
-// 3. Добавляем обработчик после создания роутера
 router.beforeEach((to, from, next) => {
-  const isAuth = store.getters['auth/isAuthenticated']; // Используем геттер
-
-  if (to.meta.requiresAuth && !isAuth) {
-    next('/login');
-  } else if (to.name === 'Login' && isAuth) {
-    next('/');
-  } else {
-    next();
+  const isAuth = store.getters['auth/isAuthenticated'];
+  
+  // Для маршрутов с проектами
+  if (to.meta.requiresOrgAuth) {
+    const projectId = to.params.id;
+    const project = store.getters['projects/getProjectById'](projectId);
+    
+    if (!project) {
+      next('/404');
+      return;
+    }
+    
+    const userRole = store.getters['organizations/getUserRole'](
+      project.orgId,
+      store.state.auth.user.id
+    );
+    
+    if (!['admin', 'manager'].includes(userRole)) {
+      next('/forbidden');
+      return;
+    }
   }
+  
+  next();
 });
 
 // 4. Экспортируем роутер

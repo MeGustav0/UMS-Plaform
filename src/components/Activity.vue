@@ -67,95 +67,95 @@
     </div>
   </template>
   
-  <script>
-  export default {
-    props: ['activity', 'projectId'],
-    methods: {
-      addTask() {
-        const newTask = {
-          id: Date.now(),
-          title: 'Новая задача',
-          description: '', // Добавляем
-          assignee: '', // Добавляем
-          status: 'todo',
-          startDate: new Date().toISOString(), // Добавляем
-          endDate: null, // Добавляем
+<script>
+export default {
+  props: ['activity', 'projectId'],
+  methods: {
+    addTask() {
+      const newTask = {
+        id: Date.now(),
+        title: 'Новая задача',
+        description: '', // Добавляем
+        assignee: '', // Добавляем
+        status: 'todo',
+        startDate: new Date().toISOString(), // Добавляем
+        endDate: null, // Добавляем
+        activityId: this.activity.id
+      };
+      this.$store.commit('projects/ADD_TASK', {
+        projectId: this.projectId,
+        activityId: this.activity.id,
+        task: newTask
+      });
+    },
+    deleteTask(taskId) {
+      this.$store.commit('projects/DELETE_TASK', {
+        projectId: this.projectId,
+        activityId: this.activity.id,
+        taskId
+      })
+    },
+    startDrag(evt, task) {
+      evt.dataTransfer.setData('task', JSON.stringify({
+        taskId: task.id,
+        activityId: this.activity.id
+      }));
+    },
+    onDrop(evt) {
+      const data = JSON.parse(evt.dataTransfer.getData('task'));
+      this.$store.commit('projects/MOVE_TASK', {
+        taskId: data.taskId,
+        fromActivityId: data.activityId,
+        toActivityId: this.activity.id
+      });
+    },
+    openEdit(type) {
+      this.$emit('edit', {
+        type,
+        data: this.activity
+      })
+    },
+    getOwnerName(ownerId) {
+      const users = this.$store.state.auth.users // Получаем список пользователей
+      const user = users.find(u => u.id === ownerId)
+      return user ? user.name : 'Не назначен'
+    },
+    formatDate(dateString) {
+      if (!dateString) return 'Не установлен';
+      const options = { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      };
+      return new Date(dateString).toLocaleDateString('ru-RU', options);
+    },
+    openTaskEdit(task) {
+      this.$emit('edit', {
+        type: 'task',
+        data: {
+          ...task,
           activityId: this.activity.id
-        };
-        this.$store.commit('projects/ADD_TASK', {
-          projectId: this.projectId,
-          activityId: this.activity.id,
-          task: newTask
-        });
-      },
-      deleteTask(taskId) {
-        this.$store.commit('projects/DELETE_TASK', {
-          projectId: this.projectId,
-          activityId: this.activity.id,
-          taskId
-        })
-      },
-      startDrag(evt, task) {
-        evt.dataTransfer.setData('task', JSON.stringify({
-          taskId: task.id,
-          activityId: this.activity.id
-        }));
-      },
-      onDrop(evt) {
-        const data = JSON.parse(evt.dataTransfer.getData('task'));
-        this.$store.commit('projects/MOVE_TASK', {
-          taskId: data.taskId,
-          fromActivityId: data.activityId,
-          toActivityId: this.activity.id
-        });
-      },
-      openEdit(type) {
-        this.$emit('edit', {
-          type,
-          data: this.activity
-        })
-      },
-      getOwnerName(ownerId) {
-        const users = this.$store.state.auth.users // Получаем список пользователей
-        const user = users.find(u => u.id === ownerId)
-        return user ? user.name : 'Не назначен'
-      },
-      formatDate(dateString) {
-        if (!dateString) return 'Не установлен';
-        const options = { 
-          day: 'numeric', 
-          month: 'long', 
-          year: 'numeric' 
-        };
-        return new Date(dateString).toLocaleDateString('ru-RU', options);
-      },
-      openTaskEdit(task) {
-        this.$emit('edit', {
-          type: 'task',
-          data: {
-            ...task,
-            activityId: this.activity.id
-          }
-        });
-      },
-      deleteActivity() {
-        if (confirm('Удалить активность и все её задачи?')) {
-          this.$emit('delete', this.activity.id)
         }
-      },
-      updateTaskStatus(task) {
-        this.$store.commit('projects/UPDATE_TASK', {
-          projectId: this.projectId,
-          activityId: this.activity.id,
-          task: {
-            ...task,
-            status: task.status
-          }
-        });
+      });
+    },
+    deleteActivity() {
+      if (confirm('Удалить активность и все её задачи?')) {
+        this.$emit('delete', this.activity.id)
       }
+    },
+    updateTaskStatus(task) {
+      this.$store.commit('projects/UPDATE_TASK', {
+        projectId: this.projectId,
+        activityId: this.activity.id,
+        task: {
+          ...task,
+          status: task.status
+        }
+      });
     }
   }
-  </script>
+}
+</script>
   
 <style scoped>
 

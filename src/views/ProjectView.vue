@@ -87,11 +87,20 @@ export default {
       m.role === 'manager'
     )
     },
-    canEdit() {
-      return this.isAdmin || this.isManager
-    },
     projectExists() {
       return this.$store.getters['projects/getProjectById'](this.projectId)
+    },
+    userRole() {
+      return this.$store.getters['organizations/getUserRole'](
+        this.project.orgId, 
+        this.$store.state.auth.user.id
+      );
+    },
+    canEditProject() {
+      return this.$store.getters['organizations/canEditProject'](
+        this.project.orgId,
+        this.$store.state.auth.user?.id
+      );
     }
   },
   methods: {
@@ -99,9 +108,10 @@ export default {
       const newActivity = {
         id: Date.now(),
         title: 'Новая активность',
+        orgId: this.project.orgId, // Добавляем привязку к организации
         description: '',
         owner: '',
-        startDate: new Date().toISOString(), // Добавляем дату начала
+        startDate: new Date().toISOString(),
         endDate: null,
         tasks: []
       };

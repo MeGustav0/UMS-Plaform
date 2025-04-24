@@ -18,61 +18,110 @@
       </div>
 
       <!-- Список организаций -->
-      <div 
-        v-for="org in allOrganizations" 
-        :key="org.id"
-        class="org-card"
-      >
-        <h4>{{ org.name }}</h4>
-        <p>Роль: {{ getOrgRole(org.id) }}</p>
-        <p>Проектов: {{ getOrgProjects(org.id).length }}</p>
+      <div v-for="org in userOrganizations" :key="org.id" class="org-card">
+      <h4>{{ org.name }}</h4>
+      <p>Роль: {{ getOrgRole(org.id) }}</p>
+      
+      <div class="members-section">
+        <h5>Участники:</h5>
+        <div v-for="member in org.members" :key="member.userId" class="member-item">
+          <span>{{ getUserName(member.userId) }}</span>
+          <span class="role-badge">{{ member.role }}</span>
+        </div>
+        
+        <div class="add-member-form">
+          <input 
+            v-model="newMembers[org.id]" 
+            placeholder="Email пользователя"
+            @keyup.enter="addMember(org.id)"
+          >
+          <button @click="addMember(org.id)">Добавить</button>
+        </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
 
 <script>
 export default {
+  props: ['orgId'],
   data: () => ({
     showOrgForm: false,
-    newOrgName: ''
+    newOrgName: '',
+    newMembers: {}
   }),
   computed: {
     user() {
-      return this.$store.state.auth.user || { organizations: [] } // Значение по умолчанию
+      return this.$store.state.auth.user || {}; // Уберите organizations из значения по умолчанию
     },
     allOrganizations() {
       return this.$store.state.organizations.organizations;
-    }
+    },
+    userOrganizations() {
+    return this.$store.getters['organizations/userOrganizations'];
+  }
   },
   methods: {
+    updateRole(member) {
+      this.$store.commit('organizations/UPDATE_MEMBER', {
+        orgId: this.orgId,
+        userId: member.userId,
+        role: member.role
+      });
+    },
     getOrgName(orgId) {
       const org = this.$store.state.organizations.organizations.find(o => o.id === orgId);
       return org?.name || 'Неизвестная организация';
     },
-
+    getUserName(userId) {
+      const user = this.$store.state.auth.users.find(u => u.id === userId);
+      return user?.name || 'Неизвестный пользователь';
+    },
     getOrgProjects(orgId) {
       return this.$store.state.projects.projects.filter(p => p.orgId === orgId)
     },
     getOrgRole(orgId) {
-      const org = this.allOrganizations.find(o => o.id === orgId);
-      return org?.members.find(m => m.userId === this.user.id)?.role || 'unknown';
+      return this.$store.getters['organizations/getUserRole'](
+        orgId,
+        this.user.id
+      );
     },
     createOrganization() {
-    const newOrg = {
-      id: Date.now(),
-      name: "Новая организация",
-      creatorId: this.$store.state.auth.user.id,
-      members: [{
-        userId: this.$store.state.auth.user.id,
-        role: "admin"
-      }],
-      projects: []
-    };
+      const newOrg = {
+        id: Date.now(),
+        name: this.newOrgName || "Новая организация",
+        creatorId: this.user.id
+      };
 
-    // Используйте мутацию с правильным namespace
-    this.$store.commit("organizations/ADD_ORGANIZATION", newOrg);
-  }
+      this.$store.commit('organizations/ADD_ORGANIZATION', newOrg);
+      this.$store.commit('organizations/ADD_MEMBER', {
+        orgId: newOrg.id,
+        userId: this.user.id,
+        role: 'admin'
+      });
+      
+      this.newOrgName = '';
+    },
+    async addMember(orgId) {
+      const email = this.newMembers[orgId]?.trim();
+      if (!email) return;
+
+      try {
+        const user = this.$store.state.auth.users.find(u => u.email === email);
+        if (!user) throw new Error('Пользователь не найден');
+
+        this.$store.commit('organizations/ADD_MEMBER', {
+          orgId,
+          userId: user.id,
+          role: 'member'
+        });
+
+        this.newMembers[orgId] = '';
+      } catch (error) {
+        alert(error.message);
+      }
+    },
   }
 }
 </script>
@@ -107,14 +156,29 @@ export default {
   margin-bottom: 10px;
 }
 
-.member-input {
-  flex: 1;
-  padding: 8px;
+.members-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #eee;
 }
 
-.role-select {
-  width: 120px;
-  padding: 8px;
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+}
+
+.role-badge {
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
+.add-member-form {
+  margin-top: 1rem;
+  display: flex;
+  gap: 8px;
 }
 
 .remove-member-btn {
@@ -122,15 +186,6 @@ export default {
   color: white;
   border: none;
   padding: 0 10px;
-  cursor: pointer;
-}
-
-.add-member-btn {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  margin-top: 10px;
   cursor: pointer;
 }
 

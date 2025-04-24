@@ -1,38 +1,48 @@
+import { hash } from 'bcryptjs';
+
 export default {
   namespaced: true,
   state: () => ({
     user: null,
     users: JSON.parse(localStorage.getItem('users')) || []
+    // Убираем поле organizations из пользователя
   }),
   mutations: {
+    // SET_USER(state, user) {
+    //   state.user = user !== null 
+    //   ? { ...user, 
+    //     organizations: user.organizations || [],
+    //     projects: user?.projects || []
+    //   } 
+    //   : null;
+    //   localStorage.setItem("auth", JSON.stringify(state.user));
+    //   if (user) {
+    //     localStorage.setItem('auth', JSON.stringify(state.user));
+    //   } else {
+    //     localStorage.removeItem('auth');
+    //   }
+    // },
     SET_USER(state, user) {
-      state.user = user !== null 
-      ? { ...user, 
-        organizations: user.organizations || [],
-        projects: user?.projects || []
-      } 
-      : null;
-      localStorage.setItem("auth", JSON.stringify(state.user));
-      if (user) {
-        localStorage.setItem('auth', JSON.stringify(state.user));
-      } else {
-        localStorage.removeItem('auth');
-      }
+      state.user = user;
+      localStorage.setItem("auth", JSON.stringify(user));
     },
+    // REGISTER_USER(state, newUser) {
+    //   state.users.push({
+    //     ...newUser,
+    //     organizations: newUser.organizations || []
+    //   })
+    //   localStorage.setItem('users', JSON.stringify(state.users))
+    // },
     REGISTER_USER(state, newUser) {
-      state.users.push({
-        ...newUser,
-        organizations: newUser.organizations || []
-      })
-      localStorage.setItem('users', JSON.stringify(state.users))
+      state.users.push(newUser);
+      localStorage.setItem('users', JSON.stringify(state.users));
     },
     UPDATE_USER_PROJECTS(state, projectId) {
-      const user = { 
-        ...state.user,
-        projects: [...state.user.projects, projectId]
-      };
-      state.user = user;
-      localStorage.setItem('auth', JSON.stringify(user));
+      if (!state.user) return;
+  
+      state.user.projects = state.user.projects || [];
+      state.user.projects.push(projectId);
+      localStorage.setItem("auth", JSON.stringify(state.user));
     },
     canDeleteProject(user, project) {
       return user.role === 'admin' || project.creatorId === user.id
@@ -43,34 +53,35 @@ export default {
     }
   },
   actions: {
-    async register({ commit }, { email, name, password }) {
+    async register({ commit, dispatch }, { email, name, password }) {
       try {
         // Создаем пользователя
         const user = {
           id: Date.now(),
           email,
           name,
-          password,
-          organizations: []
+          password // В реальном приложении нужно хешировать!
         };
-  
+
         // Создаем организацию
         const org = {
           id: Date.now(),
           name: `${name}'s Organization`,
-          creatorId: user.id,
-          members: [{ userId: user.id, role: 'admin' }],
-          projects: []
+          creatorId: user.id
         };
-  
-        // Привязываем организацию к пользователю
-        user.organizations.push({ orgId: org.id, role: 'admin' });
-  
-        // Фиксируем изменения
+
+        // Коммитим изменения
         commit('REGISTER_USER', user);
         commit('organizations/ADD_ORGANIZATION', org, { root: true });
+        commit('organizations/ADD_MEMBER', {
+          orgId: org.id,
+          userId: user.id,
+          role: 'admin'
+        }, { root: true });
+
+        // Автоматический логин
         commit('SET_USER', user);
-  
+        
         return true;
       } catch (error) {
         console.error('Ошибка регистрации:', error);
@@ -104,20 +115,22 @@ export default {
   },
   getters: {
     isAuthenticated: state => !!state.user,
-    isAdmin: (state) => state.user?.role === "admin",
-    isManager: (state) => state.user?.role === 'manager',
-    isMember: (state) => state.user?.role === "member",
+    getUserOrganizations: (state) => {
+      return state.user?.organizations || [];
+    },
     canEditProject: (state) => (project) => {
-      return state.user?.role === 'admin' || 
-        (state.user?.role === 'manager' && project.creatorId !== state.user?.id);
+      const userOrg = state.user?.organizations?.[0];
+      return userOrg?.orgId === project?.orgId;
     },
     canDeleteProject: (state) => state.user?.role === 'admin',
     getOrgRole: (state) => (orgId) => {
-      return state.user?.organizations.find(o => o.orgId === orgId)?.role
+      const org = state.user?.organizations?.find((o) => o.orgId === orgId);
+      return org?.role || "member";
     },
     
-    canEditProject: (state, getters) => (project) => {
-      return getters.getOrgRole(project.orgId) === 'admin'
+    canEditProject: (state) => (project) => {
+      const userOrgId = state.user?.organizations?.[0]?.orgId;
+      return userOrgId === project?.orgId;
     }
   }
 }
