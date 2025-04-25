@@ -6,7 +6,6 @@
 <script>
 export default {
   created() {
-    // Замените старую проверку
     this.$store.dispatch('auth/checkAuth');
   }
 }
@@ -21,8 +20,6 @@ export default {
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
 }
-
-/* Стили для контентной области */
 .content-area {
   margin-top: 54px;
   margin-left: 180px;
@@ -30,8 +27,6 @@ export default {
   display: flex;
   padding: 25px;
 }
-
-/* Анимации */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s;
@@ -43,7 +38,6 @@ export default {
 .tab-content {
   animation: slide-up 0.4s ease;
 }
-
 @keyframes slide-up {
   from {
     transform: translateY(20px);

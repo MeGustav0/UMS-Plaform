@@ -1,7 +1,17 @@
 <template>
   <div class="modal-overlay">
     <div class="modal">
-      <h3>Редактирование проекта</h3>
+      <div class="form-group" style="align-items: center; justify-content: space-between;">
+        <h2 style="margin: 0;">Редактирование проекта</h2>
+        <button 
+            v-if="canDelete"
+            type="button" 
+            @click="deleteProject"
+            class="delete-btn"
+          >
+            Удалить проект
+          </button>
+      </div>
       <form @submit.prevent="save">
         <!-- Основная информация -->
         <div class="form-group">
@@ -72,14 +82,6 @@
 
         <!-- Кнопки управления -->
         <div class="modal-actions">
-          <button 
-            v-if="canDelete"
-            type="button" 
-            @click="deleteProject"
-            class="delete-btn"
-          >
-            Удалить проект
-          </button>
           <button 
             type="button"
             @click="$emit('close')"
@@ -205,7 +207,7 @@ export default {
   border-radius: 12px;
   padding: 30px;
   margin-top: 10vh;
-  width: 90%;
+  width: 30%;
   max-width: 600px;
   box-shadow: 0px 7px 20px 0px rgba(34, 60, 80, 0.2);
   color: #2c3e50;
@@ -278,7 +280,7 @@ textarea {
   background: #e74c3c;
   color: white;
   padding: 8px 16px;
-  margin-top: 20px;
+  border-radius: 6px;
 }
 .access-warning {
   color: #e74c3c;

@@ -4,13 +4,10 @@
         <div class="activity-top">
           <h4 style="margin: 0px;">{{ activity.title }}</h4>
           <div class="activity-actions">
-            <button v-if="$store.getters['auth/canEditProject'](project)" @click="openEdit('activity')" class="edit-btn pink hover"><img class="img_edit" src="../assets/edit.svg" alt=""></button>
+            <button v-if="$store.getters['auth/canEditProject']" @click="openEdit('activity')" class="edit-btn pink hover"><img class="img_edit" src="../assets/edit.svg" alt=""></button>
             <button @click="deleteActivity" class="delete-btn pink hover">✖</button>
           </div>
         </div>
-        <!-- <div class="description pink">
-          {{ activity.description || 'Нет описания' }}
-        </div> -->
         <div class="description pink">
           <span>Ответственный: {{ activity.owner || 'Не назначен' }}</span>
         </div>
@@ -58,16 +55,18 @@
           </div>
         </div>
         <button @click="addTask" class="add-task">+ Задача</button>
-        <TaskItem 
+        <!-- <TaskItem 
           :task="task"
           :activityId="activity.id"
           @edit="$emit('edit', $event)"
-        />
+        /> -->
       </div>
     </div>
   </template>
   
 <script>
+
+
 export default {
   props: ['activity', 'projectId'],
   methods: {
@@ -116,7 +115,7 @@ export default {
       })
     },
     getOwnerName(ownerId) {
-      const users = this.$store.state.auth.users // Получаем список пользователей
+      const users = this.$store.state.auth.users
       const user = users.find(u => u.id === ownerId)
       return user ? user.name : 'Не назначен'
     },
@@ -177,7 +176,7 @@ export default {
 /* Адаптивность */
 @media (max-width: 768px) {
   .activity {
-    resize: vertical; /* Только вертикальное изменение на мобильных */
+    resize: vertical; 
     max-width: 100%;
     margin: 1rem 0;
   }

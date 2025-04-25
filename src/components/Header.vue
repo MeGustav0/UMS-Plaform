@@ -65,10 +65,6 @@ export default {
     return {
       showProfileMenu: false,
       showProjectModal: false,
-      user: {
-        name: 'Волис',
-        role: 'Администратор'
-      }
     }
   },
   computed: {

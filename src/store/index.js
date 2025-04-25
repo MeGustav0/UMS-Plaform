@@ -5,10 +5,14 @@ import organizations from './modules/organizations'
 
 export default createStore({
   state: {
+    loading: false
   },
   getters: {
   },
   mutations: {
+    SET_LOADING(state, isLoading) {
+      state.loading = isLoading;
+    }
   },
   actions: {
   },
@@ -35,14 +39,3 @@ export default createStore({
     }
   ]
 })
-const savedProjects = localStorage.getItem('projects');
-if (savedProjects) {
-  try {
-    const parsed = JSON.parse(savedProjects);
-    if (Array.isArray(parsed)) {
-      store.commit('projects/INIT_PROJECTS', parsed);
-    }
-  } catch (e) {
-    // console.error('Ошибка загрузки проектов:', e);
-  }
-}

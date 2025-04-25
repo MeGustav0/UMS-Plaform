@@ -15,24 +15,22 @@ export default {
       }));
   
       commit('auth/UPDATE_USERS', updatedUsers, { root: true });
+    },
+    async updateProject({ commit, rootGetters }, updatedProject) {
+      if (!rootGetters['auth/canEditProject'](updatedProject)) {
+        throw new Error('Нет прав для редактирования');
+      }
+      commit('UPDATE_PROJECT', updatedProject);
     }
   },
   mutations: {
     INIT_PROJECTS(state, projects) {
       state.projects = projects;
     },
-    // ADD_PROJECT(state, project) {
-    //   state.projects.push({
-    //     ...project,
-    //     orgId: project.orgId, // Привязка к организации
-    //     activities: project.activities || []
-    //   })
-    //   localStorage.setItem('projects', JSON.stringify(state.projects))
-    // },
     ADD_PROJECT(state, project) {
       const newProject = {
         ...project,
-        members: project.members || [] // Гарантируем массив
+        members: project.members || []
       };
       state.projects.push(newProject);
       localStorage.setItem('projects', JSON.stringify(state.projects));
@@ -41,9 +39,6 @@ export default {
       const index = state.projects.findIndex(p => p.id === updatedProject.id)
       if (index !== -1) {
         state.projects.splice(index, 1, updatedProject)
-      }
-      if (!getters['auth/canEditProject'](updatedProject)) {
-        throw new Error('Нет прав для редактирования');
       }
     },
     // Обновление активности

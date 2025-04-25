@@ -1,8 +1,8 @@
 <template>
-  <div v-if="project">
+  <div v-if="project" :key="project.id + project.activities.length">
   <div class="project-view">
+     <!-- Хеадер -->
     <Header />
-    
     <div class="main-layout">
       <!-- Сайдбар -->
       <Sidebar 
@@ -26,14 +26,12 @@
             <button class="add-activity" @click="addActivity">+ Активность</button>
           </div>
         </div>
-
         <!-- Задачи -->
         <TasksView 
           v-if="currentTab === 'tasks'" 
           :project="project" 
           @edit="handleEdit"
         />
-
         <!-- Статистика -->
         <StatsView v-if="currentTab === 'stats'" :project="project" />
       </div>
@@ -108,14 +106,13 @@ export default {
       const newActivity = {
         id: Date.now(),
         title: 'Новая активность',
-        orgId: this.project.orgId, // Добавляем привязку к организации
+        orgId: this.project.orgId,
         description: '',
         owner: '',
         startDate: new Date().toISOString(),
         endDate: null,
         tasks: []
       };
-      
       this.$store.commit('projects/ADD_ACTIVITY', {
         projectId: this.project.id,
         activity: newActivity
@@ -149,21 +146,16 @@ export default {
       }
       this.showEditModal = false;
     },
-    deleteProject() {
-      if (this.isAdmin) {
-        // Логика удаления
-      }
-    }
   },
-  watch: {
-    project: {
-      handler(newVal) {
-      // Форсирует обновление при глубоких изменениях
-       this.$forceUpdate()
-      },
-      deep: true
-    }
-  }
+  // watch: {
+  //   project: {
+  //     handler(newVal) {
+  //     // Форсирует обновление при глубоких изменениях
+  //      this.$forceUpdate()
+  //     },
+  //     deep: true
+  //   }
+  // }
 }
 </script>
 

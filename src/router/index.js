@@ -4,6 +4,7 @@ import Home from '@/views/Home.vue'
 import ProjectView from '@/views/ProjectView.vue'
 import Login from '@/views/Login.vue'
 import Profile from '../views/Profile.vue'
+import NotFound from '@/views/NotFound.vue'
 
 const routes = [
   {
@@ -17,7 +18,7 @@ const routes = [
     component: ProjectView,
     meta: { 
       requiresAuth: true,
-      requiresOrgAuth: true // Новая метка
+      requiresOrgAuth: true
     }
   },
   {
@@ -35,10 +36,13 @@ const routes = [
     name: 'Profile',
     component: () => import('../views/Profile.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/404',
+    component: () => import('@/views/NotFound.vue')
   }
 ]
 
-// 2. Создаем экземпляр роутера
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes
@@ -46,8 +50,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const isAuth = store.getters['auth/isAuthenticated'];
-  
-  // Для маршрутов с проектами
+
   if (to.meta.requiresOrgAuth) {
     const projectId = to.params.id;
     const project = store.getters['projects/getProjectById'](projectId);
@@ -71,5 +74,4 @@ router.beforeEach((to, from, next) => {
   next();
 });
 
-// 4. Экспортируем роутер
 export default router

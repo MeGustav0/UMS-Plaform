@@ -26,7 +26,16 @@
 
 <script>
 export default {
-  props: ['task', 'activityId'],
+  props: {
+    task: {
+      type: Object,
+      required: true
+    },
+    activityId: {
+      type: [Number, String],
+      required: true
+    }
+  },
   computed: {
     statusLabel() {
       const labels = {
@@ -41,7 +50,7 @@ export default {
     updateTask() {
       this.$emit('update', {
         ...this.task,
-        activityId: this.activityId // Используем пропс вместо task.activityId
+        activityId: this.activityId
       })
     },
     formatDate(dateString) {

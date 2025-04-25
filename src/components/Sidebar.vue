@@ -39,7 +39,11 @@ export default {
       type: Object,
       required: true,
       validator: (p) => p.id && p.orgId // Проверка обязательных полей
-    }
+    },
+    currentTab: {
+      type: String,
+      required: true
+    },
   },
   data() {
     return {
@@ -53,7 +57,7 @@ export default {
   },
   computed: {
     isAdmin() {
-    // Используем новый геттер для проверки роли в организации
+    // геттер для проверки роли в организации
     return this.$store.getters['organizations/getUserRole'](
       this.project.orgId,
       this.$store.state.auth.user?.id

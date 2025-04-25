@@ -1,4 +1,3 @@
-<!-- components/PieChart.vue -->
 <template>
   <div class="chart-wrapper">
     <VueApexCharts 
@@ -36,8 +35,8 @@ export default {
       return {
         chart: {
           type: 'pie',
-          height: 250, // Уменьшаем высоту
-          width: '90%' // Добавляем ограничение по ширине
+          height: 250, 
+          width: '90%' 
         },
         labels: this.data.map(item => item.label),
         title: {
@@ -66,9 +65,9 @@ export default {
 
 <style scoped>
 .chart-wrapper {
-  margin: 1rem auto; /* Центрирование */
-  max-width: 500px; /* Ограничение максимальной ширины */
+  margin: 1rem auto; 
+  max-width: 500px; 
   padding: 1rem;
-  text-align: center; /* Центрирование для заголовка */
+  text-align: center; 
 }
 </style>

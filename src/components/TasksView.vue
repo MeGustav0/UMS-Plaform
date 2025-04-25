@@ -40,16 +40,14 @@ export default {
     updateTask(updatedTask) {
     this.$store.commit('projects/UPDATE_TASK', {
       projectId: this.project.id,
-      activityId: updatedTask.activityId, // Теперь есть activityId
+      activityId: updatedTask.activityId,
       task: updatedTask
     })
   }
   },
   computed: {
     allTasks() {
-      // Получаем projectId из текущего маршрута
       const projectId = Number(this.$route.params.id);
-      // Правильный вызов геттера с передачей projectId
       return this.$store.getters['projects/allTasks'](projectId);
     },
   },

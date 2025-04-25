@@ -1,4 +1,3 @@
-<!-- components/MetricCard.vue -->
 <template>
   <div class="metric-card">
     <div class="icon">{{ icon }}</div>

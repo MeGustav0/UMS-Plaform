@@ -8,31 +8,10 @@ export default {
     // Убираем поле organizations из пользователя
   }),
   mutations: {
-    // SET_USER(state, user) {
-    //   state.user = user !== null 
-    //   ? { ...user, 
-    //     organizations: user.organizations || [],
-    //     projects: user?.projects || []
-    //   } 
-    //   : null;
-    //   localStorage.setItem("auth", JSON.stringify(state.user));
-    //   if (user) {
-    //     localStorage.setItem('auth', JSON.stringify(state.user));
-    //   } else {
-    //     localStorage.removeItem('auth');
-    //   }
-    // },
     SET_USER(state, user) {
       state.user = user;
       localStorage.setItem("auth", JSON.stringify(user));
     },
-    // REGISTER_USER(state, newUser) {
-    //   state.users.push({
-    //     ...newUser,
-    //     organizations: newUser.organizations || []
-    //   })
-    //   localStorage.setItem('users', JSON.stringify(state.users))
-    // },
     REGISTER_USER(state, newUser) {
       state.users.push(newUser);
       localStorage.setItem('users', JSON.stringify(state.users));
@@ -55,12 +34,12 @@ export default {
   actions: {
     async register({ commit, dispatch }, { email, name, password }) {
       try {
-        // Создаем пользователя
+        const hashedPassword = await hash(password, 10);
         const user = {
           id: Date.now(),
           email,
           name,
-          password // В реальном приложении нужно хешировать!
+          password: hashedPassword
         };
 
         // Создаем организацию
@@ -88,14 +67,14 @@ export default {
         return false;
       }
     },
-    login({ commit, state }, { email, password }) { // Добавляем state
-      const user = state.users.find(u => 
-        u.email === email && 
-        u.password === password // Сравниваем пароль из хранилища с введенным
-      );
+    async login({ commit, state }, { email, password }) {
+      const user = state.users.find(u => u.email === email);
+      if (!user || !(await compare(password, user.password))) { // Проверка хеша
+        throw new Error('Неверные учетные данные');
+      }
       
       if (!user) throw new Error('Неверные учетные данные');
-      commit('SET_USER', user); // Вызываем мутацию
+      commit('SET_USER', user);
       console.log('Ищем пользователя:', email);
       console.log('Найденный пользователь:', user);
     },

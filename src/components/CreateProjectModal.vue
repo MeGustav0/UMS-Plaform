@@ -110,7 +110,6 @@ export default {
       return org?.members || []
     },
     userOrgs() {
-      // Используем рабочий геттер
       return this.$store.getters['organizations/userOrganizations'] || []
     },
   },
@@ -146,7 +145,7 @@ export default {
         deadline: this.form.deadline,
         orgId: this.selectedOrg,
         creatorId,
-        members, // Сохраняем участников
+        members,
         activities: []
       };
 
