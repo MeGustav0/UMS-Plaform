@@ -1,22 +1,25 @@
 <template>
   <div class="modal-overlay">
     <div class="modal">
-      <div class="form-group" style="align-items: center; justify-content: space-between;">
-        <h2 style="margin: 0;">Редактирование проекта</h2>
-        <button 
-            v-if="canDelete"
-            type="button" 
-            @click="deleteProject"
-            class="delete-btn"
-          >
-            Удалить проект
-          </button>
+      <div
+        class="form-group"
+        style="align-items: center; justify-content: space-between"
+      >
+        <h2 style="margin: 0">Редактирование проекта</h2>
+        <button
+          v-if="canDelete"
+          type="button"
+          @click="deleteProject"
+          class="delete-btn"
+        >
+          Удалить проект
+        </button>
       </div>
       <form @submit.prevent="save">
         <!-- Основная информация -->
         <div class="form-group">
           <label>Название:</label>
-          <input v-model="localProject.name" required>
+          <input v-model="localProject.name" required />
         </div>
 
         <div class="form-group">
@@ -30,7 +33,7 @@
 
           <!-- Выбор из членов организации -->
           <div class="members-selector">
-            <div 
+            <div
               v-for="member in orgMembers"
               :key="member.userId"
               class="member-item"
@@ -40,7 +43,7 @@
                   type="checkbox"
                   :value="member.userId"
                   v-model="selectedMembers"
-                >
+                />
                 {{ getUserName(member.userId) }}
               </label>
               <select v-model="memberRoles[member.userId]">
@@ -49,11 +52,7 @@
                 <option value="member">Исполнитель</option>
               </select>
             </div>
-            <button 
-              type="button" 
-              @click="addMembers"
-              class="add-btn"
-            >
+            <button type="button" @click="addMembers" class="add-btn">
               Добавить выбранных
             </button>
           </div>
@@ -68,7 +67,7 @@
               <span>{{ getUserName(member.userId) }}</span>
               <div class="role-actions">
                 <span class="role-badge">{{ member.role }}</span>
-                <button 
+                <button
                   v-if="canEdit"
                   @click="removeMember(member.userId)"
                   class="remove-btn"
@@ -82,19 +81,10 @@
 
         <!-- Кнопки управления -->
         <div class="modal-actions">
-          <button 
-            type="button"
-            @click="$emit('close')"
-            class="cancel-btn"
-          >
+          <button type="button" @click="$emit('close')" class="cancel-btn">
             Отмена
           </button>
-          <button 
-            type="submit"
-            class="save-btn"
-          >
-            Сохранить
-          </button>
+          <button type="submit" class="save-btn">Сохранить</button>
         </div>
       </form>
     </div>
@@ -103,23 +93,23 @@
 
 <script>
 export default {
-  props: ['project'],
+  props: ["project"],
   data() {
     return {
       localProject: {
         ...this.project,
-        members: this.project.members || []
+        members: this.project.members || [],
       },
       selectedMembers: [],
-      memberRoles: {}
-    }
+      memberRoles: {},
+    };
   },
   computed: {
     // Получаем участников организации
     orgMembers() {
       if (!this.localProject.orgId) return [];
       const org = this.$store.state.organizations.organizations.find(
-        o => o.id === this.localProject.orgId
+        (o) => o.id === this.localProject.orgId
       );
       return org?.members || [];
     },
@@ -127,11 +117,11 @@ export default {
     // Проверка прав на редактирование
     canEdit() {
       if (!this.$store.state.auth.user) return false;
-      const userRole = this.$store.getters['organizations/getUserRole'](
+      const userRole = this.$store.getters["organizations/getUserRole"](
         this.localProject.orgId,
         this.$store.state.auth.user.id
       );
-      return ['admin', 'manager'].includes(userRole);
+      return ["admin", "manager"].includes(userRole);
     },
 
     // Проверка прав на удаление
@@ -140,17 +130,19 @@ export default {
         this.localProject.creatorId === this.$store.state.auth.user?.id ||
         this.canEdit
       );
-    }
+    },
   },
   methods: {
     // Добавление выбранных участников
     addMembers() {
-      this.selectedMembers.forEach(userId => {
-        const exists = this.localProject.members.some(m => m.userId === userId);
+      this.selectedMembers.forEach((userId) => {
+        const exists = this.localProject.members.some(
+          (m) => m.userId === userId
+        );
         if (!exists) {
           this.localProject.members.push({
             userId,
-            role: this.memberRoles[userId] || 'member'
+            role: this.memberRoles[userId] || "member",
           });
         }
       });
@@ -160,34 +152,34 @@ export default {
     // Удаление участника
     removeMember(userId) {
       this.localProject.members = this.localProject.members.filter(
-        m => m.userId !== userId
+        (m) => m.userId !== userId
       );
     },
 
     // Сохранение изменений
     save() {
-      this.$store.commit('projects/UPDATE_PROJECT', this.localProject);
-      this.$emit('close');
+      this.$store.commit("projects/UPDATE_PROJECT", this.localProject);
+      this.$emit("close");
     },
 
     // Удаление проекта
     deleteProject() {
-      if (confirm('Удалить проект?')) {
-        this.$store.commit('projects/DELETE_PROJECT', this.localProject.id);
-        this.$emit('close');
-        this.$router.push('/');
+      if (confirm("Удалить проект?")) {
+        this.$store.commit("projects/DELETE_PROJECT", this.localProject.id);
+        this.$emit("close");
+        this.$router.push("/");
       }
     },
 
     // Получение имени пользователя
     getUserName(userId) {
-      const user = this.$store.state.auth.users.find(u => u.id === userId);
-      return user?.name || 'Неизвестный';
-    }
-  }
-}
+      const user = this.$store.state.auth.users.find((u) => u.id === userId);
+      return user?.name || "Неизвестный";
+    },
+  },
+};
 </script>
-  
+
 <style scoped>
 .modal-overlay {
   position: fixed;
@@ -235,7 +227,8 @@ label {
   font-size: 1.1rem;
 }
 
-input, textarea {
+input,
+textarea {
   width: 100%;
   border: 0;
   display: flex;
@@ -243,7 +236,7 @@ input, textarea {
   padding: 10px;
   background: #fff;
   border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 textarea {
@@ -266,7 +259,7 @@ textarea {
   padding-left: 10px;
   background: #fff;
   border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .user-item select {
@@ -324,4 +317,4 @@ textarea {
 .modal-actions button[type="submit"]:hover {
   background: #23ec77;
 }
-  </style>
+</style>

@@ -103,7 +103,7 @@ export default {
 }
 
 .header {
-  margin-bottom: 2rem;
+  margin: 2rem;
   text-align: center;
 }
 

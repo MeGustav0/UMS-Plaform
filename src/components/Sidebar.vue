@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import ProjectInfoModal from '@/components/ProjectInfoModal.vue'
+import ProjectInfoModal from '@/components/Modal/ProjectInfoModal.vue'
 
 
 export default {
@@ -92,9 +92,9 @@ export default {
   color: white;
   padding: 10px;
   min-height: calc(100vh - 74px) ;
+  max-width: 180px;
   min-width: 160px;
   position: fixed;
-  margin-top: 54px;
   z-index: 100;
 }
 
@@ -103,6 +103,7 @@ export default {
   align-items: center;
   padding-left: 6px;
   background: #424348;
+  max-width: 180px;
 }
 
 .edit-btn {
@@ -112,6 +113,7 @@ export default {
   font-size: 1.5em;
   padding: 5px;
   color: white;
+  max-width: 180px;
 }
 
 .edit-btn:hover {

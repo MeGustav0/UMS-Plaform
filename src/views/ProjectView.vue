@@ -1,9 +1,9 @@
 <template>
-  <div v-if="project" :key="project.id + project.activities.length">
-  <div class="project-view">
+  <div v-if="project" :key="project.id + safeActivitiesLength">
+  
      <!-- Хеадер -->
     <Header />
-    <div class="main-layout">
+    <div class="project-view">
       <!-- Сайдбар -->
       <Sidebar 
         :project="project"
@@ -15,15 +15,27 @@
         <!-- USM -->
         <div  v-if="currentTab === 'usm'">
           <div class="usm-board">
-            <Activity 
-              v-for="activity in project.activities" 
-              :key="activity.id"
-              :activity="activity"
-              @edit="handleEdit"
-              :projectId="projectId"
-              @delete="handleDeleteActivity"
-            />
-            <button class="add-activity" @click="addActivity">+ Активность</button>
+            <div class="usm">
+              <Activity 
+                v-for="activity in project.activities" 
+                :key="activity.id"
+                :activity="activity"
+                @edit="handleEdit"
+                :projectId="projectId"
+                @delete="handleDeleteActivity"
+              />
+              <button class="add-activity" @click="addActivity">+ Активность</button>
+            </div>
+            <div>
+              <ReleasesContainer
+                :releases="projectReleases"
+                @add-story="handleAddStory"
+              />
+            </div>
+            
+            <div>
+              <button @click="createRelease">Создать релиз</button>
+            </div>
           </div>
         </div>
         <!-- Задачи -->
@@ -37,7 +49,7 @@
       </div>
     </div>
   </div>
-  </div>
+  
   <div v-else>
     Проект не найден
   </div>
@@ -57,10 +69,11 @@ import TaskItem from '@/components/TaskItem.vue'
 import TasksView from '@/components/TasksView.vue'
 import StatsView from '@/components/StatsView.vue'
 import Activity from '@/components/Activity.vue'
-import EditModal from '@/components/EditModal.vue'
+import EditModal from '@/components/Modal/EditModal.vue'
+import ReleasesContainer from '@/components/ReleasesContainer.vue'
 
 export default {
-  components: { Header, Sidebar, TaskItem, TasksView, StatsView, Activity, EditModal },
+  components: { Header, Sidebar, TaskItem, TasksView, StatsView, Activity, EditModal, ReleasesContainer, },
   data() {
     return {
       currentTab: 'usm',
@@ -99,6 +112,12 @@ export default {
         this.project.orgId,
         this.$store.state.auth.user?.id
       );
+    },
+    projectReleases() { // Правильное название computed-свойства
+      return this.$store.getters['releases/projectReleases'](this.projectId)
+    },
+    safeActivitiesLength() {
+      return this.project?.activities?.length || 0;
     }
   },
   methods: {
@@ -146,20 +165,41 @@ export default {
       }
       this.showEditModal = false;
     },
+    createRelease() {
+      this.$store.dispatch('releases/createRelease', {
+        projectId: this.projectId,
+        name: 'Новый релиз'
+      })
+    },
+    handleAddStory({ releaseId, taskPath }) {
+      const text = prompt('Введите текст истории:')
+      if (text) {
+        this.$store.commit('releases/ADD_STORY', {
+          releaseId,
+          taskPath,
+          story: {
+            id: Date.now(),
+            text,
+            createdAt: new Date().toISOString()
+          }
+        })
+      }
+    },
   },
-  // watch: {
-  //   project: {
-  //     handler(newVal) {
-  //     // Форсирует обновление при глубоких изменениях
-  //      this.$forceUpdate()
-  //     },
-  //     deep: true
-  //   }
-  // }
 }
 </script>
 
 <style scoped>
+.usm{
+  display: flex;
+  height: 100%;
+  border: dotted;
+  border-color: #3f3f3f;
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 0;
+}
+
 .main-layout{
   display: flex;
 }
@@ -167,6 +207,7 @@ export default {
   width: 100%;
   display: flex;
   overflow-x: auto;
+  flex-direction: column;
   background: #f5f5f5;
 }
 

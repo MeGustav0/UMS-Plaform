@@ -14,18 +14,19 @@ export default {
 
 <style>
 #app {
-  min-height: 100vh;
+  min-height: 98vh;
+  width: fit-content;
   display: flex;
   font-family: Arial, sans-serif;
   flex-direction: column;
+  background: #f5f5f5;
   -webkit-font-smoothing: antialiased;
 }
 .content-area {
   margin-top: 54px;
   margin-left: 180px;
-  width: 100%;
+  width: calc(100vw - 180px);
   display: flex;
-  padding: 25px;
 }
 .fade-enter-active,
 .fade-leave-active {

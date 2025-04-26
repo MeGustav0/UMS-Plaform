@@ -8,10 +8,10 @@
     <!-- Секция проектов -->
     <div class="projects-section">
       <router-link 
+        class="project-tab hover"
         v-for="project in userProjects"
         :key="project.id"
         :to="`/project/${project.id}`"
-        class="project-tab hover"
       >
         {{ project.name }}
       </router-link>
@@ -57,7 +57,7 @@
 </template>
 
 <script>
-import CreateProjectModal from '@/components/CreateProjectModal.vue'
+import CreateProjectModal from '@/components/Modal/CreateProjectModal.vue'
 
 export default {
   components: { CreateProjectModal },

@@ -2,6 +2,7 @@ import { createStore } from 'vuex'
 import auth from './modules/auth'
 import projects from './modules/projects'
 import organizations from './modules/organizations'
+import releases from './modules/releases'
 
 export default createStore({
   state: {
@@ -20,7 +21,7 @@ export default createStore({
     auth,
     organizations,
     projects,
-
+    releases, 
   },
   plugins: [
     (store) => {
@@ -34,6 +35,9 @@ export default createStore({
       store.subscribe((mutation, state) => {
         if (mutation.type.startsWith('projects/')) {
           localStorage.setItem('projects', JSON.stringify(state.projects.projects));
+        }
+        if (mutation.type.startsWith('releases/')) {
+          localStorage.setItem('releases', JSON.stringify(state.releases.releases));
         }
       });
     }

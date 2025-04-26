@@ -1,4 +1,4 @@
-import { hash } from 'bcryptjs';
+import { compare, hash } from 'bcryptjs';
 
 export default {
   namespaced: true,
@@ -69,6 +69,11 @@ export default {
     },
     async login({ commit, state }, { email, password }) {
       const user = state.users.find(u => u.email === email);
+      if (user.password.length < 30) {
+        if (password !== user.password) throw new Error('Неверные данные');
+      } else {
+        if (!(await compare(password, user.password))) throw new Error('Неверные данные');
+      }
       if (!user || !(await compare(password, user.password))) { // Проверка хеша
         throw new Error('Неверные учетные данные');
       }
@@ -80,10 +85,10 @@ export default {
     },
     logout({ commit }) {
       commit('SET_USER', null)
-      localStorage.removeItem('currentUser')
+      localStorage.removeItem('auth')
     },
     checkAuth({ commit }) {
-      const savedUser = localStorage.getItem('currentUser');
+      const savedUser = localStorage.getItem('auth');
       if (savedUser) {
         const user = JSON.parse(savedUser);
         commit('SET_USER', user);
@@ -97,19 +102,10 @@ export default {
     getUserOrganizations: (state) => {
       return state.user?.organizations || [];
     },
-    canEditProject: (state) => (project) => {
-      const userOrg = state.user?.organizations?.[0];
-      return userOrg?.orgId === project?.orgId;
-    },
     canDeleteProject: (state) => state.user?.role === 'admin',
     getOrgRole: (state) => (orgId) => {
       const org = state.user?.organizations?.find((o) => o.orgId === orgId);
       return org?.role || "member";
     },
-    
-    canEditProject: (state) => (project) => {
-      const userOrgId = state.user?.organizations?.[0]?.orgId;
-      return userOrgId === project?.orgId;
-    }
   }
 }

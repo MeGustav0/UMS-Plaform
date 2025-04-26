@@ -1,7 +1,7 @@
 export default {
   namespaced: true,
   state: () => ({
-    projects: JSON.parse(localStorage.getItem('projects')) || []
+    projects: JSON.parse(localStorage.getItem('projects')) || [],
   }),
   actions: {
     async deleteProject({ commit, rootState }, projectId) {
@@ -16,12 +16,6 @@ export default {
   
       commit('auth/UPDATE_USERS', updatedUsers, { root: true });
     },
-    async updateProject({ commit, rootGetters }, updatedProject) {
-      if (!rootGetters['auth/canEditProject'](updatedProject)) {
-        throw new Error('Нет прав для редактирования');
-      }
-      commit('UPDATE_PROJECT', updatedProject);
-    }
   },
   mutations: {
     INIT_PROJECTS(state, projects) {
@@ -32,8 +26,10 @@ export default {
         ...project,
         members: project.members || []
       };
-      state.projects.push(newProject);
-      localStorage.setItem('projects', JSON.stringify(state.projects));
+      state.projects.push({
+        ...project,
+        activities: project.activities || []
+      })
     },
     UPDATE_PROJECT(state, updatedProject) {
       const index = state.projects.findIndex(p => p.id === updatedProject.id)
@@ -56,7 +52,6 @@ export default {
       const project = state.projects.find(p => p.id === projectId);
       if (project) {
         project.activities.push(activity);
-        localStorage.setItem('projects', JSON.stringify(state.projects));
       }
     },
     
@@ -109,18 +104,16 @@ export default {
     },
     UPDATE_USERS(state, users) {
       state.users = users;
-      localStorage.setItem('users', JSON.stringify(users));
     },
     UPDATE_USER_PROJECTS(state, projectId) {
       if (!state.user.projects) {
         state.user.projects = [];
       }
       state.user.projects.push(projectId);
-      localStorage.setItem("auth", JSON.stringify(state.user));
     },
     DELETE_PROJECT(state, projectId) {
       state.projects = state.projects.filter(p => p.id !== projectId);
-    }
+    },
   },
   getters: {
     getProjectById: (state) => (id) => 
@@ -146,6 +139,6 @@ export default {
     },
     orgProjects: (state) => (orgId) => {
       return state.projects.filter(project => project.orgId === orgId);
-    }
+    },
   },
 }

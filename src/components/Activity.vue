@@ -4,7 +4,7 @@
         <div class="activity-top">
           <h4 style="margin: 0px;">{{ activity.title }}</h4>
           <div class="activity-actions">
-            <button v-if="$store.getters['auth/canEditProject']" @click="openEdit('activity')" class="edit-btn pink hover"><img class="img_edit" src="../assets/edit.svg" alt=""></button>
+            <button @click="openEdit('activity')" class="edit-btn pink hover"><img class="img_edit" src="../assets/edit.svg" alt=""></button>
             <button @click="deleteActivity" class="delete-btn pink hover">✖</button>
           </div>
         </div>
@@ -152,7 +152,7 @@ export default {
         }
       });
     }
-  }
+  },
 }
 </script>
   
@@ -161,10 +161,9 @@ export default {
 .tasks {
   display: flex;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  flex-wrap: wrap;
+  /* flex-wrap: wrap; */
   gap: 1.5rem;
   margin-top: 1rem;
-  padding: 1rem 0rem;
   border-radius: 6px;
 }
 
@@ -246,17 +245,17 @@ export default {
 }
 
 .add-task {
-  width: 100%;
-  height: 3rem;
   font-weight: 600;
   margin-top: 0.5rem;
   padding: 0.5rem;
   border: 0;
+  opacity: 0.05;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 .add-task:hover{
   background: #c5c4c475;
+  opacity: 1;
 }
 .edit-btn {
   padding: 4px 5px 1px 4px;
