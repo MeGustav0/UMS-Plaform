@@ -15,7 +15,7 @@ export default {
 <style>
 #app {
   min-height: 98vh;
-  width: fit-content;
+  /* width: fit-content; */
   display: flex;
   font-family: Arial, sans-serif;
   flex-direction: column;

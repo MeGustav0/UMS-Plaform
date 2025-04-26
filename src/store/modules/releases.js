@@ -29,6 +29,7 @@ export default {
         createdAt: new Date().toISOString(),
         endDate: story.endDate || null
       });
+      console.log('История добавлена:', task.stories);
     },
     UPDATE_STORY(state, { releaseId, taskPath, story }) {
       const release = state.releases.find(r => r.id === releaseId);

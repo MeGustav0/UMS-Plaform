@@ -2,7 +2,6 @@ export default {
   namespaced: true,
   state: () => ({
     organizations: [],
-    // Добавляем хранилище для участников организаций
     members: [],
   }),
   mutations: {

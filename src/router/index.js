@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import store from '@/store' // Добавляем импорт хранилища
+import store from '@/store' 
 import Home from '@/views/Home.vue'
 import ProjectView from '@/views/ProjectView.vue'
 import Login from '@/views/Login.vue'

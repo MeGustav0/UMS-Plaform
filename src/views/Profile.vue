@@ -1,4 +1,5 @@
 <template>
+  <div style="width: 100vw;">
   <div class="profile">
     <!-- Личная информация -->
     <div class="personal-info">
@@ -37,6 +38,7 @@
       </div>
     </div>
     </div>
+  </div>
   </div>
 </template>
 
@@ -120,68 +122,133 @@ export default {
 </script>
 
 <style scoped>
-.org-form {
-  background: #f5f5f5;
+.profile {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+/* Личная информация */
+.personal-info {
+  background: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
-  margin: 15px 0;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.org-input {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-}
-.org-textarea {
-  width: 100%;
-  height: 80px;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-}
-.member-item {
-  display: flex;
-  gap: 10px;
+
+.personal-info h2 {
+  color: #2c3e50;
   margin-bottom: 10px;
 }
-.members-section {
-  margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid #eee;
-}
-.member-item {
-  display: flex;
-  justify-content: space-between;
-  margin: 0.5rem 0;
-}
-.role-badge {
-  background: #f0f0f0;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.8em;
-}
-.add-member-form {
-  margin-top: 1rem;
-  display: flex;
-  gap: 8px;
-}
-.remove-member-btn {
-  background: #ff4444;
-  color: white;
-  border: none;
-  padding: 0 10px;
-  cursor: pointer;
-}
-.org-card {
+
+/* Секция организаций */
+.org-section {
   background: white;
-  border: 1px solid #eee;
-  padding: 15px;
-  margin: 15px 0;
+  padding: 20px;
   border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.org-actions {
-  margin-top: 10px;
+
+.org-section h3 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+/* Карточка организации */
+.org-card {
+  background: #f8f9fa;
+  padding: 15px;
+  margin-bottom: 15px;
+  margin-top: 15px;
+  border-radius: 6px;
+  border-left: 4px solid #3498db;
+}
+
+.org-card h4 {
+  color: #2c3e50;
+  margin: 0 0 10px 0;
+}
+
+/* Формы */
+.org-form {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.org-form input {
+  padding: 8px;
+  margin-right: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 200px;
+}
+
+button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+/* Кнопки действий */
+button[type="submit"] {
+  background: #3498db;
+  color: white;
+}
+
+button.delete-btn {
+  background: #e74c3c;
+  color: white;
+}
+
+/* Участники */
+.members-section {
+  margin-top: 15px;
+}
+
+.member-item {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.role-badge {
+  background: #3498db;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  margin-left: 10px;
+}
+
+/* Ошибки */
+.error {
+  color: #e74c3c;
+  margin-top: 10px;
+  padding: 8px;
+  background: #f8d7da;
+  border-radius: 4px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .profile {
+    padding: 10px;
+  }
+  
+  .org-form input {
+    width: 100%;
+    margin-bottom: 10px;
+  }
 }
 </style>

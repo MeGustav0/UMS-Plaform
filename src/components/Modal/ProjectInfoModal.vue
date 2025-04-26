@@ -317,4 +317,141 @@ textarea {
 .modal-actions button[type="submit"]:hover {
   background: #23ec77;
 }
+
+.members-section {
+  margin-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+h4 {
+  color: #2d3748;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.members-selector {
+  background: #f7fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.member-item:last-child {
+  border-bottom: none;
+}
+
+.member-item label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4299e1;
+}
+
+select {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e0;
+  background: white;
+  font-size: 0.9rem;
+}
+
+.add-btn {
+  margin-top: 1rem;
+  background: #4299e1;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-btn:hover {
+  background: #3182ce;
+}
+
+.current-members {
+  margin-top: 1rem;
+}
+
+.member-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f7fafc;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+}
+
+.role-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.role-badge {
+  background: #48bb78;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.role-badge[value="admin"] { background: #4299e1; }
+.role-badge[value="manager"] { background: #f6ad55; }
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: #e53e3e;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 0.5rem;
+  line-height: 1;
+}
+
+.remove-btn:hover {
+  color: #c53030;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+  .member-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  select {
+    width: 100%;
+  }
+  
+  .member-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .role-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
 </style>

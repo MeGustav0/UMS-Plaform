@@ -8,12 +8,12 @@
             <button @click="deleteActivity" class="delete-btn pink hover">✖</button>
           </div>
         </div>
-        <div class="description pink">
-          <span>Ответственный: {{ activity.owner || 'Не назначен' }}</span>
+        <div>
+          <span class="description pink"><img class="img_edit" src="../assets/user.svg" alt="">: {{ activity.owner || '—' }}</span>
         </div>
         <div class="meta">
-          <span class="info pink">Создана: {{ formatDate(activity.startDate) }}</span>
-          <span class="info pink">Дедлайн: {{ formatDate(activity.endDate) }}</span>
+          <!-- <span class="info pink">: {{ formatDate(activity.startDate) }}</span> -->
+          <span class="description pink"><img class="img_edit" src="../assets/deadline.svg" alt="">: {{ formatDate(activity.endDate) }}</span>
         </div>
       </div>
       <div 
@@ -30,8 +30,7 @@
         >
           <div class="task-header">
             <div class="activity-top">
-              <h4 style="margin: 0px;">{{ task.title }}</h4>
-              <div class="activity-actions">
+              
                 <div class="task-status">
                   <select 
                     v-model="task.status" 
@@ -44,14 +43,17 @@
                     <option value="done">Done</option>
                   </select>
                 </div>
-                <button @click="openTaskEdit(task)" class="edit-btn yellow hover_task"><img class="img_edit" src="../assets/edit.svg" alt=""></button>
-                <button @click="deleteTask(task.id)" class="delete-btn yellow hover_task">✖</button>
-              </div>
+                <div class="activity-actions">
+                  <button @click="openTaskEdit(task)" class="edit-btn yellow hover_task"><img class="img_edit" src="../assets/edit.svg" alt=""></button>
+                  <button @click="deleteTask(task.id)" class="delete-btn yellow hover_task">✖</button>
+                </div>
+              
             </div>
+            <h4 style="margin-bottom: 0;" class="description">{{ task.title }}</h4>
             <!-- <div class="description yellow">{{ task.description || 'Нет описания' }}</div> -->
-            <div class="description yellow">Исполнитель: {{ task.assignee || 'Не назначен' }}</div>
-            <div class="description yellow">Начало: {{ formatDate(task.startDate) }}</div>
-            <div class="description yellow">Дедлайн: {{ formatDate(task.endDate) }}</div>
+            <div class="description yellow"><img class="img_edit" src="../assets/user.svg" alt="">: {{ task.assignee || '—' }}</div>
+            <!-- <div class="description yellow">Начало: {{ formatDate(task.startDate) }}</div> -->
+            <div class="description yellow"><img class="img_edit" src="../assets/deadline.svg" alt="">: {{ formatDate(task.endDate) }}</div>
           </div>
         </div>
         <button @click="addTask" class="add-task">+ Задача</button>
@@ -117,10 +119,10 @@ export default {
     getOwnerName(ownerId) {
       const users = this.$store.state.auth.users
       const user = users.find(u => u.id === ownerId)
-      return user ? user.name : 'Не назначен'
+      return user ? user.name : '—'
     },
     formatDate(dateString) {
-      if (!dateString) return 'Не установлен';
+      if (!dateString) return '—';
       const options = { 
         day: 'numeric', 
         month: 'long', 
@@ -192,10 +194,10 @@ export default {
   border-left: 0;
   border-style: dotted;
   border-color: #3f3f3f;
-  resize: horizontal;
-  overflow: auto; 
   padding: 1rem;
-  min-width: 280px;
+  /* resize: horizontal;
+  overflow: auto;  */
+  /* min-width: 280px; */
   color: #3f3f3f;
   font-size: 0.8em;
 }
@@ -230,6 +232,7 @@ export default {
   resize: horizontal;
   overflow: auto;
   background-color:#fde549;
+  min-width: 200px;
   box-shadow: -3px 4px 1px 0px rgba(34, 60, 80, 0.2);
 }
 
@@ -240,6 +243,7 @@ export default {
 }
 
 .description {
+  display: flex;
   margin-top: 8px;
   padding: 4px;
 }
@@ -305,7 +309,6 @@ export default {
   border-radius: 4px;
   border: none;
   cursor: pointer;
-  margin-left: 10px;
 }
 
 .status-select.done {

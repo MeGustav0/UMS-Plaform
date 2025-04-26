@@ -5,7 +5,6 @@ export default {
   }),
   actions: {
     async deleteProject({ commit, rootState }, projectId) {
-      // Удаляем проект
       commit('DELETE_PROJECT', projectId);
   
       // Обновляем пользователей
@@ -98,7 +97,7 @@ export default {
       const taskIndex = activity.tasks.findIndex(t => t.id === task.id);
       if (taskIndex !== -1) {
         activity.tasks.splice(taskIndex, 1, { 
-          ...task // Полное обновление задачи
+          ...task 
         });
       }
     },

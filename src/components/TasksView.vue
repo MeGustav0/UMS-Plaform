@@ -78,8 +78,7 @@ export default {
       return this.$store.getters['releases/projectReleases'](this.project.id)
     },
     latestRelease() {
-      const rels = this.projectReleases
-      return rels.length ? rels[rels.length - 1] : null
+      return this.projectReleases.slice(-1)[0] || null
     },
     projectMembers() {
       if (!this.latestRelease) return []
@@ -122,6 +121,20 @@ export default {
           story: updatedStory
         })
       }
+      if (updatedStory.id && this.latestRelease) {
+      this.$store.commit('releases/UPDATE_STORY', {
+      releaseId: this.editingReleaseId,
+      taskPath: this.editingTaskPath,
+      story: updatedStory
+    })
+  } else if (this.latestRelease) {
+    updatedStory.id = Date.now(); // Присваиваем ID если новая история
+    this.$store.commit('releases/ADD_STORY', {
+      releaseId: this.editingReleaseId,
+      taskPath: this.editingTaskPath,
+      story: updatedStory
+    })
+  }
       this.closeStoryModal()
     }
   }

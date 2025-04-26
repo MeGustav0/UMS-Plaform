@@ -5,7 +5,7 @@ export default {
   state: () => ({
     user: null,
     users: JSON.parse(localStorage.getItem('users')) || []
-    // Убираем поле organizations из пользователя
+
   }),
   mutations: {
     SET_USER(state, user) {
@@ -74,7 +74,7 @@ export default {
       } else {
         if (!(await compare(password, user.password))) throw new Error('Неверные данные');
       }
-      if (!user || !(await compare(password, user.password))) { // Проверка хеша
+      if (!user || !(await compare(password, user.password))) { 
         throw new Error('Неверные учетные данные');
       }
       

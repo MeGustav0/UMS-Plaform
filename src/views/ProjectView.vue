@@ -113,7 +113,7 @@ export default {
         this.$store.state.auth.user?.id
       );
     },
-    projectReleases() { // Правильное название computed-свойства
+    projectReleases() { 
       return this.$store.getters['releases/projectReleases'](this.projectId)
     },
     safeActivitiesLength() {
@@ -172,18 +172,24 @@ export default {
       })
     },
     handleAddStory({ releaseId, taskPath }) {
-      const text = prompt('Введите текст истории:')
-      if (text) {
-        this.$store.commit('releases/ADD_STORY', {
-          releaseId,
-          taskPath,
-          story: {
-            id: Date.now(),
-            text,
-            createdAt: new Date().toISOString()
-          }
-        })
+      
+      const title = prompt('Введите название истории:')
+  if (title) {
+    console.log('Adding story:', { releaseId, taskPath, title });
+    this.$store.commit('releases/ADD_STORY', {
+      releaseId,
+      taskPath,
+      story: {
+        id: Date.now(),
+        title,
+        status: 'todo',
+        assignee: '',
+        description: '',
+        createdAt: new Date().toISOString(),
+        endDate: null
       }
+    })
+  }
     },
   },
 }
