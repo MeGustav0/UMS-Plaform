@@ -1,76 +1,39 @@
 <template>
   <div class="metric-card">
-    <div class="header">
-      <div class="icon">{{ icon }}</div>
-      <h3>{{ title }}</h3>
-    </div>
-    
+    <div class="icon">{{ icon }}</div>
     <div class="content">
-      <div class="main-value">{{ value }}</div>
-      
-      <div v-if="progress !== undefined" class="progress">
-        <div class="progress-bar" :style="{ width: progress + '%' }"></div>
-        <span>{{ progress }}%</span>
-      </div>
-      
-      <div v-if="overdue !== undefined" class="overdue">
-        🚨 Просрочено: {{ overdue }}
-      </div>
+      <h3 class="title">{{ title }}</h3>
+      <p class="value">{{ value }}</p>
+      <!-- Показываем прогресс, если он передан -->
+      <p v-if="progress !== null" class="progress">Прогресс: {{ progress }}%</p>
+      <!-- Показываем overdue, если передан -->
+      <p v-if="overdue !== null" class="overdue">Просрочено: {{ overdue }}</p>
     </div>
   </div>
 </template>
 
 <script>
 export default {
+  name: "MetricCard",
   props: {
-    title: {
-      type: String,
-      required: true
-    },
-    value: {
-      type: [String, Number],
-      required: true
-    },
-    progress: Number,
-    overdue: Number,
-    icon: {
-      type: String,
-      default: '📊'
-    }
+    title:    { type: String,  required: true },
+    value:    { type: [Number, String], required: true },
+    icon:     { type: String,  default: "📊" },
+    progress: { type: Number,  default: null },
+    overdue:  { type: Number,  default: null }
   }
 }
 </script>
 
 <style scoped>
 .metric-card {
-  display: flex;
-  align-items: center;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  flex-wrap: wrap;
+  border: 1px solid #ddd;
+  padding: 1em;
+  border-radius: 4px;
+  text-align: center;
 }
-
-.icon {
-  font-size: 2rem;
-  margin-right: 1rem;
-}
-
-.content {
-  flex-grow: 1;
-}
-
-.title {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #6c757d;
-}
-
-.value {
-  margin: 0.5rem 0 0;
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #212529;
-}
+.icon { font-size: 2em; }
+.title { margin: 0.5em 0 0.2em; }
+.value { font-size: 1.5em; margin: 0; }
+.progress, .overdue { margin: 0.2em 0; font-size: 0.9em; color: #555; }
 </style>

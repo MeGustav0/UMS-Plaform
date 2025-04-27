@@ -1,311 +1,229 @@
 <template>
-  <div v-if="isLoading">Загрузка...</div>
-  <div v-else>
-    <div class="stats">
-      <!-- Фильтры -->
-      <div class="filters">
-        <div class="filter-group">
-          <label>Релиз:</label>
-          <select v-model="selectedRelease">
-            <option value="all">Все релизы</option>
-            <option
-              v-for="release in releases"
-              :key="release.id"
-              :value="release.id"
-            >
-              {{ release.name }}
-            </option>
-          </select>
-        </div>
+  <div class="stats-view">
+    <!-- Фильтры -->
+    <div class="filters">
+      <label>Релиз:
+        <select v-model="selectedRelease">
+          <option value="all">Все релизы</option>
+          <option v-for="r in releases" :key="r.id" :value="r.id">{{ r.name }}</option>
+        </select>
+      </label>
 
-        <div class="filter-group">
-          <label>Активность:</label>
-          <select v-model="selectedActivity">
-            <option value="all">Все активности</option>
-            <option
-              v-for="activity in filteredActivities"
-              :key="activity.id"
-              :value="activity.id"
-            >
-              {{ activity.title }}
-            </option>
-          </select>
-        </div>
+      <label>Активность:
+        <select v-model="selectedActivity">
+          <option value="all">Все активности</option>
+          <option v-for="a in filteredActivities" :key="a.id" :value="a.id">{{ a.title }}</option>
+        </select>
+      </label>
 
-        <div class="filter-group">
-          <label>Задача:</label>
-          <select v-model="selectedTask">
-            <option value="all">Все задачи</option>
-            <option
-              v-for="task in filteredTasks"
-              :key="task.id"
-              :value="task.id"
-            >
-              {{ task.title }}
-            </option>
-          </select>
-        </div>
-      </div>
+      <label>Задача:
+        <select v-model="selectedTask">
+          <option value="all">Все задачи</option>
+          <option v-for="t in filteredTasks" :key="t.id" :value="t.id">{{ t.title }}</option>
+        </select>
+      </label>
+    </div>
 
-      <!-- Динамические метрики -->
-      <div class="metrics-grid">
-        <!-- Для уровня проекта/релиза -->
-        <template v-if="['project', 'activity'].includes(currentLevel)">
-          <MetricCard
-            title="Активностей"
-            :value="metrics.activity.total"
-            :progress="progress.activity"
-            icon="📂"
-          />
-        </template>
+    <!-- Метрики -->
+    <div class="metrics-grid">
+      <MetricCard
+        v-if="showActivitiesMetrics"
+        title="Активностей"
+        :value="metrics.activities.total"
+        :completed="metrics.activities.completed"
+        :progress="progress.activities"
+        icon="📂"
+      />
+      <MetricCard
+        v-if="showTasksMetrics"
+        title="Задач"
+        :value="metrics.tasks.total"
+        :completed="metrics.tasks.completed"
+        :overdue="metrics.tasks.overdue"
+        :progress="progress.tasks"
+        icon="📝"
+      />
+      <MetricCard
+        v-if="showStoriesMetrics"
+        title="Историй"
+        :value="metrics.stories.total"
+        :completed="metrics.stories.completed"
+        :overdue="metrics.stories.overdue"
+        :progress="progress.stories"
+        icon="📚"
+      />
+    </div>
 
-        <!-- Для уровня активности/задачи -->
-        <template v-if="['project', 'activity', 'task'].includes(currentLevel)">
-          <MetricCard
-            title="Задач"
-            :value="metrics.task.total"
-            :progress="progress.task"
-            :overdue="metrics.task.overdue"
-            icon="📝"
-          />
-        </template>
-
-        <!-- Для всех уровней -->
-        <MetricCard
-          v-if="metrics && metrics.activity"
-          title="Активностей"
-          :value="metrics.activity.total"
-          :progress="progress.activity"
-          icon="📂"
-        />
-      </div>
-      <div>
-        <div v-if="chartData && chartData.length > 0" class="chart-container">
-          <PieChart :data="computedChartData" :title="chartTitle" />
-        </div>
-        <div v-else>Нет данных для отображения графика.</div>
-      </div>
+    <!-- Графики -->
+    <div class="chart-container">
+      <PieChart
+        v-if="showTasksChart"
+        :data="tasksStatusDistribution"
+        title="Распределение задач"
+      />
+      <PieChart
+        v-if="showStoriesChart"
+        :data="storiesStatusDistribution"
+        title="Распределение историй"
+      />
     </div>
   </div>
 </template>
 
 <script>
-import MetricCard from "@/components/MetricCard.vue";
-import PieChart from "@/components/PieChart.vue";
+import MetricCard from '@/components/MetricCard.vue'
+import PieChart from '@/components/PieChart.vue'
 
 export default {
+  name: 'StatsView',
   components: { MetricCard, PieChart },
   props: {
-    project: {
-      type: Object,
-      required: true
-    },
-    releases: {
-      type: Array,
-      required: true
-    },
-    chartData: {
-      type: Array,
-      required: true,
-    },
+    project: { type: Object, required: true },
+    releases: { type: Array, required: true }
   },
   data() {
     return {
-      selectedRelease: "all",
-      selectedActivity: "all",
-      selectedTask: "all",
-      isLoading: true,
-    };
+      selectedRelease: 'all',
+      selectedActivity: 'all',
+      selectedTask: 'all'
+    }
   },
   computed: {
-    computedChartData() {
-      // Здесь возвращаем корректные данные
-      return this.project.activities // или что-то другое в зависимости от данных
+    currentRelease() {
+      return this.selectedRelease === 'all' ? null : this.releases.find(r => r.id === this.selectedRelease);
     },
-    chartTitle() {
-      return "Статистика по проекту";
+    filteredActivities() {
+      if (this.currentRelease) return this.currentRelease.activitiesSnapshot;
+      return this.project.activities;
     },
-    // Фильтрация данных
-    filteredData() {
-      return this.getFilteredTasks();
+    filteredTasks() {
+      return this.filteredActivities
+        .flatMap(a => a.tasks)
+        .filter(t => this.selectedActivity === 'all' || t.activityId === this.selectedActivity);
+    },
+    filteredStories() {
+      const releasesToCheck = this.selectedRelease === 'all' ? this.releases : [this.currentRelease];
+      let stories = [];
+
+      releasesToCheck.forEach(release => {
+        release.activitiesSnapshot.forEach(activity => {
+          if (this.selectedActivity === 'all' || activity.id === this.selectedActivity) {
+            activity.tasks.forEach(task => {
+              if (this.selectedTask === 'all' || task.id === this.selectedTask) {
+                stories.push(...(task.stories || []));
+              }
+            });
+          }
+        });
+      });
+
+      return stories;
     },
 
     // Метрики
-    totalTasks() {
-      return this.filteredData.length;
+    metrics() {
+      return {
+        activities: {
+          total: this.filteredActivities.length,
+          completed: this.filteredActivities.filter(a => a.tasks.every(t => t.status === 'done')).length
+        },
+        tasks: {
+          total: this.filteredTasks.length,
+          completed: this.filteredTasks.filter(t => t.status === 'done').length,
+          overdue: this.filteredTasks.filter(t => t.status !== 'done' && new Date(t.endDate) < new Date()).length
+        },
+        stories: {
+          total: this.filteredStories.length,
+          completed: this.filteredStories.filter(s => s.status === 'done').length,
+          overdue: this.filteredStories.filter(s => s.status !== 'done' && new Date(s.endDate) < new Date()).length
+        }
+      }
     },
-    completedTasks() {
-      return this.filteredData.filter((t) => t.status === "done").length;
-    },
+
     progress() {
-      return this.totalTasks > 0
-        ? Math.round((this.completedTasks / this.totalTasks) * 100)
-        : 0;
+      const calc = (completed, total) => (total ? Math.round((completed / total) * 100) : 0);
+      return {
+        activities: calc(this.metrics.activities.completed, this.metrics.activities.total),
+        tasks: calc(this.metrics.tasks.completed, this.metrics.tasks.total),
+        stories: calc(this.metrics.stories.completed, this.metrics.stories.total)
+      }
     },
-    overdueTasks() {
-      return this.filteredData.filter(
-        (t) =>
-          !["done", "canceled"].includes(t.status) &&
-          new Date(t.endDate) < new Date()
-      ).length;
-    },
-    currentLevel() {
-      if (this.selectedTask !== "all") return "story";
-      if (this.selectedActivity !== "all") return "task";
-      if (this.selectedRelease !== "all") return "activity";
-      return "project";
-    },
-    // Данные для графиков
-    statusDistribution() {
-      const statuses = ["todo", "progress", "done"];
-      return statuses.map((status) => ({
+
+    // Диаграммы
+    tasksStatusDistribution() {
+      const statuses = ['todo', 'progress', 'done'];
+      return statuses.map(status => ({
         label: this.statusLabel(status),
-        value: this.filteredData.filter((t) => t.status === status).length,
+        value: this.filteredTasks.filter(t => t.status === status).length
+      }));
+    },
+    storiesStatusDistribution() {
+      const statuses = ['todo', 'progress', 'done'];
+      return statuses.map(status => ({
+        label: this.statusLabel(status),
+        value: this.filteredStories.filter(s => s.status === status).length
       }));
     },
 
-    // Вспомогательные вычисления
-    filteredActivities() {
-      if (!this.project || !this.releases) return [];
-      if (this.selectedRelease === "all") return this.project.activities;
-      const release = this.releases.find((r) => r.id === this.selectedRelease);
-      return release?.activitiesSnapshot || [];
+    // Что показывать?
+    showActivitiesMetrics() {
+      return this.selectedTask === 'all' && this.selectedActivity === 'all';
+    },
+    showTasksMetrics() {
+      return this.selectedTask === 'all';
+    },
+    showStoriesMetrics() {
+      return true; // истории всегда показываем в метриках
+    },
+    showTasksChart() {
+      return this.selectedTask === 'all';
+    },
+    showStoriesChart() {
+      return true;
     },
 
-    filteredTasks() {
-      return this.filteredActivities
-        .flatMap((a) => a.tasks)
-        .filter(
-          (t) =>
-            this.selectedActivity === "all" ||
-            t.activityId === this.selectedActivity
-        );
-    },
-
-    filteredStories() {
-      return this.releases
-        .filter(
-          (r) => this.selectedRelease === "all" || r.id === this.selectedRelease
-        )
-        .flatMap((r) => r.activitiesSnapshot)
-        .filter(
-          (a) =>
-            this.selectedActivity === "all" || a.id === this.selectedActivity
-        )
-        .flatMap((a) => a.tasks)
-        .filter(
-          (t) => this.selectedTask === "all" || t.id === this.selectedTask
-        )
-        .flatMap((t) => t.stories || []);
-    },
-    metrics() {
-      console.log("filteredActivities", this.filteredActivities);
-      console.log("filteredTasks", this.filteredTasks);
-      console.log("filteredStories", this.filteredStories);
-
-      return {
-        activity: {
-          total: this.filteredActivities.length,
-          completed: this.filteredActivities.filter((a) =>
-            a.tasks.every((t) => t.status === "done")
-          ).length,
-        },
-        task: {
-          total: this.filteredTasks.length,
-          completed: this.filteredTasks.filter((t) => t.status === "done")
-            .length,
-          overdue: this.filteredTasks.filter(
-            (t) =>
-              !["done", "canceled"].includes(t.status) &&
-              new Date(t.endDate) < new Date()
-          ).length,
-        },
-        story: {
-          total: this.filteredStories.length,
-          completed: this.filteredStories.filter((s) => s.status === "done")
-            .length,
-          overdue: this.filteredStories.filter(
-            (s) =>
-              !["done", "canceled"].includes(s.status) &&
-              new Date(s.endDate) < new Date()
-          ).length,
-        },
-      };
-    },
-    progress() {
-      return {
-        activity:
-          this.metrics.activity.total > 0
-            ? Math.round(
-                (this.metrics.activity.completed /
-                  this.metrics.activity.total) *
-                  100
-              )
-            : 0,
-        task:
-          this.metrics.task.total > 0
-            ? Math.round(
-                (this.metrics.task.completed / this.metrics.task.total) * 100
-              )
-            : 0,
-        story:
-          this.metrics.story.total > 0
-            ? Math.round(
-                (this.metrics.story.completed / this.metrics.story.total) * 100
-              )
-            : 0,
-      };
-    },
-  },
-  methods: {
-    getFilteredTasks() {
-      let tasks = [];
-
-      if (this.selectedRelease === "all") {
-        // Все задачи из всех релизов
-        tasks = this.releases.flatMap((r) =>
-          r.activitiesSnapshot.flatMap((a) =>
-            a.tasks.flatMap((t) => t.stories || [])
-          )
-        );
-      } else {
-        // Задачи из конкретного релиза
-        const release = this.releases.find(
-          (r) => r.id === this.selectedRelease
-        );
-        if (!release) return [];
-        tasks = release.activitiesSnapshot
-          .flatMap((a) => a.tasks)
-          .flatMap((t) => t.stories || []);
-      }
-
-      // Дополнительная фильтрация
-      return tasks.filter((t) => {
-        const matchesActivity =
-          this.selectedActivity === "all" ||
-          t.activityId === this.selectedActivity;
-        const matchesTask =
-          this.selectedTask === "all" || t.taskId === this.selectedTask;
-        return matchesActivity && matchesTask;
-      });
-    },
-
-    statusLabel(status) {
-      const labels = {
-        todo: "To Do",
-        progress: "In Progress",
-        done: "Done",
-      };
-      return labels[status];
-    },
-  },
-  mounted() {
-    this.isLoading = false  
+    // Текстовые метки для статусов
+    statusLabel() {
+      return (status) => ({
+        todo: 'To Do',
+        progress: 'In Progress',
+        done: 'Done'
+      }[status]);
+    }
   }
-};
+}
 </script>
 
 <style scoped>
+.filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.metrics-grid {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+}
+</style>
+
+<!-- <style scoped>
+.stats-view{
+  width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.metrics-grid{
+  display: flex;
+  width: 100%;
+  justify-content: space-evenly
+}
 .filters {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -328,4 +246,10 @@ select {
   border-radius: 4px;
   border: 1px solid #ddd;
 }
-</style>
+
+.chart-container{
+  display: flex;
+  justify-content: space-evenly;
+  width: 100%;
+}
+</style> -->

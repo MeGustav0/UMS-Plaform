@@ -34,7 +34,7 @@
             @dragover.prevent
           >
             <div v-for="story in task.stories" :key="story.id" class="story-item" draggable="false">
-              <div>
+              <div style="width: 100%;">
                 <div class="activity-top">
                   <div class="task-status">
                     <select

@@ -12,18 +12,44 @@
       </select>
     </div>
 
+    <!-- Фильтры -->
+    <div v-if="selectedRelease" class="filters">
+      <label>Пользователь:
+        <select v-model="selectedUserId">
+          <option value="all">Все</option>
+          <option v-for="member in projectMembers" :key="member.id" :value="member.id">
+            {{ member.name }}
+          </option>
+        </select>
+      </label>
+
+      <label>Статус:
+        <select v-model="selectedStatus">
+          <option value="all">Все</option>
+          <option value="todo">To Do</option>
+          <option value="progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </label>
+
+      <label>Дедлайн до:
+        <input type="date" v-model="selectedDeadline">
+      </label>
+    </div>
+
+    <!-- Список задач и историй -->
     <div class="tasks-list" v-if="project?.activities?.length && selectedRelease">
       <div v-for="activity in project.activities" :key="activity.id" class="activity-tasks">
         <h3 style="margin: 0;">{{ activity.title }}</h3>
 
-        <div v-for="task in activity.tasks" :key="task.id" class="task-with-stories">
+        <div v-for="task in getFilteredTasks(activity)" :key="task.id" class="task-with-stories">
           <TaskItem
             :task="task"
             :activityId="activity.id"
             @edit="$emit('edit', $event)"
           />
 
-          <div v-for="story in getStories(activity.id, task.id)" :key="story.id" class="story-item clickable"
+          <div v-for="story in getFilteredStories(activity.id, task.id)" :key="story.id" class="story-item clickable"
             @click="openEditStoryModal(selectedRelease.id, [activity.id, task.id], story)">
             <div class="story-header">
               <strong>{{ story.title }}</strong>
@@ -69,7 +95,11 @@ export default {
       editingStory: null,
       editingReleaseId: null,
       editingTaskPath: null,
-      selectedReleaseId: null // Новое состояние для выбранного релиза
+      selectedReleaseId: null,
+
+      selectedUserId: 'all',
+      selectedStatus: 'all',
+      selectedDeadline: ''
     }
   },
   computed: {
@@ -86,12 +116,31 @@ export default {
     }
   },
   methods: {
+    // Получить истории с фильтрами
     getStories(activityId, taskId) {
       if (!this.selectedRelease) return []
       const act = this.selectedRelease.activitiesSnapshot.find(a => a.id === activityId)
       if (!act) return []
       const task = act.tasks.find(t => t.id === taskId)
       return task?.stories || []
+    },
+    // Фильтрация задач
+    getFilteredTasks(activity) {
+      return activity.tasks.filter(task => {
+        const userOk = this.selectedUserId === 'all' || task.assignee === this.selectedUserId;
+        const statusOk = this.selectedStatus === 'all' || task.status === this.selectedStatus;
+        const deadlineOk = !this.selectedDeadline || (task.endDate && task.endDate <= this.selectedDeadline);
+        return userOk && statusOk && deadlineOk;
+      });
+    },
+    // Фильтрация историй
+    getFilteredStories(activityId, taskId) {
+      return this.getStories(activityId, taskId).filter(story => {
+        const userOk = this.selectedUserId === 'all' || story.assignee === this.selectedUserId;
+        const statusOk = this.selectedStatus === 'all' || story.status === this.selectedStatus;
+        const deadlineOk = !this.selectedDeadline || (story.endDate && story.endDate <= this.selectedDeadline);
+        return userOk && statusOk && deadlineOk;
+      });
     },
     formatDate(date) {
       return date ? new Date(date).toLocaleDateString('ru-RU') : 'Не указано'
@@ -138,6 +187,7 @@ export default {
   }
 }
 </script>
+
 
 <style scoped>
 .tasks-view{
