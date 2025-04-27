@@ -2,39 +2,44 @@
   <div class="releases-container">
     <div v-for="release in releases" :key="release.id" class="release-block">
       <div class="release-header">
-        <h3 style="margin: 10px">{{ release.name }}</h3>
+        <h3 style="margin: 10px;" @click="startEditingReleaseName(release)">
+          <!-- Если мы редактируем этот релиз -->
+          <template v-if="editingReleaseNameId === release.id">
+            <input
+              v-model="newReleaseName"
+              @blur="saveReleaseName(release.id)"
+              @keydown.enter="saveReleaseName(release.id)"
+              class="release-name-input"
+              autofocus
+            />
+          </template>
+
+          <!-- Просто название если не редактируем -->
+          <template v-else>
+            {{ release.name }}
+          </template>
+        </h3>
         <span class="release-date">{{ formatDate(release.createdAt) }}</span>
       </div>
 
       <div class="release-board">
-        <div
-          v-for="activity in release.activitiesSnapshot"
-          :key="activity.id"
-          class="activity-release"
-        >
-          <div
-            v-for="task in activity.tasks"
-            :key="task.id"
-            class="task-release"
+        <div v-for="activity in release.activitiesSnapshot" :key="activity.id" class="activity-release">
+          <div 
+            v-for="task in activity.tasks" 
+            :key="task.id" 
+            class="task-release" 
+            draggable="true"
+            @dragstart="startDrag($event, release.id, activity.id, task.id)"
+            @drop="onDrop($event, release.id, activity.id)"
+            @dragover.prevent
           >
-            <div
-              v-for="story in getStories(activity.id, task.id)"
-              :key="story.id"
-              class="story-item"
-              draggable="false"
-            >
+            <div v-for="story in task.stories" :key="story.id" class="story-item" draggable="false">
               <div>
                 <div class="activity-top">
                   <div class="task-status">
                     <select
                       v-model="story.status"
-                      @change="
-                        updateStoryStatus(
-                          latestRelease.id,
-                          [activity.id, task.id],
-                          story
-                        )
-                      "
+                      @change="updateStoryStatus(release.id, [activity.id, task.id], story)"
                       class="status-select"
                       :class="story.status"
                     >
@@ -46,29 +51,13 @@
 
                   <div class="activity-actions">
                     <button
-                      @click="
-                        openEditStoryModal(
-                          latestRelease.id,
-                          [activity.id, task.id],
-                          story
-                        )
-                      "
+                      @click="openEditStoryModal(release.id, [activity.id, task.id], story)"
                       class="edit-btn orange hover"
                     >
-                      <img
-                        class="img_edit"
-                        src="../assets/edit.svg"
-                        alt="Редактировать"
-                      />
+                      <img class="img_edit" src="../assets/edit.svg" alt="Редактировать" />
                     </button>
                     <button
-                      @click.stop="
-                        deleteStory(
-                          latestRelease.id,
-                          [activity.id, task.id],
-                          story.id
-                        )
-                      "
+                      @click.stop="deleteStory(release.id, [activity.id, task.id], story.id)"
                       class="delete-btn orange hover"
                     >
                       ✖
@@ -76,9 +65,7 @@
                   </div>
                 </div>
 
-                <h4 style="margin-bottom: 0" class="description">
-                  {{ story.title }}
-                </h4>
+                <h4 style="margin-bottom: 0" class="description">{{ story.title }}</h4>
 
                 <div class="description orange">
                   <img class="img_edit" src="../assets/user.svg" alt="" />:
@@ -95,7 +82,7 @@
             <div class="task-header">
               <button
                 class="add-story-btn"
-                @click="emitAddStory(latestRelease.id, [activity.id, task.id])"
+                @click="emitAddStory(release.id, [activity.id, task.id])"
               >
                 + История
               </button>
@@ -134,27 +121,21 @@ export default {
       editingStory: null,
       editingReleaseId: null,
       editingTaskPath: null,
+      editingReleaseNameId: null,
+      newReleaseName: '',
     };
   },
   computed: {
     projectMembers() {
-      const release = this.releases.find((r) => r.id === this.editingReleaseId);
+      const release = this.releases.find(r => r.id === this.editingReleaseId);
       if (!release) return [];
-      const project = this.$store.state.projects.projects.find(
-        (p) => p.id === release.projectId
-      );
+      const project = this.$store.state.projects.projects.find(p => p.id === release.projectId);
       return project?.members || [];
-    },
-    latestRelease() {
-      return this.releases.length
-        ? this.releases[this.releases.length - 1]
-        : null;
     },
   },
   methods: {
     emitAddStory(releaseId, taskPath) {
-      console.log('Emit add-story:', { releaseId, taskPath });
-      this.$emit("add-story", { releaseId, taskPath }); 
+      this.$emit("add-story", { releaseId, taskPath });
     },
     openEditStoryModal(releaseId, taskPath, story) {
       this.editingReleaseId = releaseId;
@@ -187,41 +168,57 @@ export default {
     },
     deleteStory(releaseId, taskPath, storyId) {
       if (confirm("Удалить эту историю?")) {
-        this.$store.commit("releases/DELETE_STORY", {
-          releaseId,
-          taskPath,
-          storyId,
-        });
+        this.$store.commit("releases/DELETE_STORY", { releaseId, taskPath, storyId });
       }
     },
     formatDate(date) {
-      if (!date) return "Не указано";
-      return new Date(date).toLocaleDateString("ru-RU");
-    },
-    getStories(activityId, taskId) {
-      if (!this.latestRelease) return [];
-      const act = this.latestRelease.activitiesSnapshot.map(a => ({ ...a })).find(a => a.id === activityId);
-      if (!act) return [];
-      const task = act.tasks.map(t => ({ ...t })).find(t => t.id === taskId);
-      return task?.stories || [];
+      return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
     },
     getUserName(id) {
-      const u = this.$store.state.auth.users.find((u) => u.id === id);
-      return u?.name || "—";
-    },
-    formatDate(d) {
-      return d ? new Date(d).toLocaleDateString("ru-RU") : "—";
-    },
-    openEditStoryModal(rId, path, story) {
-      this.$emit("edit-story", { releaseId: rId, taskPath: path, story });
+      const user = this.$store.state.auth.users.find(u => u.id === id);
+      return user?.name || "—";
     },
     updateStoryStatus(releaseId, taskPath, story) {
-     if (!releaseId) return; 
-      this.$store.commit('releases/UPDATE_STORY', {
+      if (!releaseId) return;
+      this.$store.commit("releases/UPDATE_STORY", {
         releaseId,
         taskPath,
-        story
+        story,
       });
+    },
+    startDrag(event, releaseId, activityId, taskId) {
+      event.dataTransfer.setData('text/plain', JSON.stringify({
+        releaseId,
+        activityId,
+        taskId
+      }));
+    },
+    onDrop(event, targetReleaseId, targetActivityId) {
+      const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+      if (!data) return;
+
+      // Перемещаем задачу через мутацию
+      this.$store.commit('releases/MOVE_TASK_BETWEEN_ACTIVITIES', {
+        fromReleaseId: data.releaseId,
+        fromActivityId: data.activityId,
+        toReleaseId: targetReleaseId,
+        toActivityId: targetActivityId,
+        taskId: data.taskId
+      });
+    },
+    startEditingReleaseName(release) {
+      this.editingReleaseNameId = release.id;
+      this.newReleaseName = release.name;
+    },
+    saveReleaseName(releaseId) {
+      if (this.newReleaseName.trim()) {
+        this.$store.commit('releases/UPDATE_RELEASE_NAME', {
+          releaseId,
+          newName: this.newReleaseName.trim()
+        });
+      }
+      this.editingReleaseNameId = null;
+      this.newReleaseName = '';
     },
   },
 };
@@ -231,6 +228,7 @@ export default {
 .releases-container {
   border-left: 0;
   border-bottom: 0;
+  border-right: 0;
   border-style: dotted;
   background: #f5f5f5;
   border-color: #3f3f3f;
@@ -240,12 +238,20 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: 1rem;
+  cursor: pointer;
+  padding-left: 5px;
   border-style: dotted;
   border-color: #3f3f3f;
   border-top: 0;
   border-left: 0;
-  border-right: 0;
+}
+
+.release-name-input {
+  font-size: 1.2rem;
+  padding: 4px 8px;
+  width: 90%;
+  border: 1px solid #ccc;
+  border-radius: 6px;
 }
 
 .activity-release {
@@ -259,8 +265,8 @@ export default {
   gap: 1.5rem;
   resize: horizontal; 
   overflow: auto; 
-  /* min-width: 300px; */
-  padding: 16px 103px 16px 16px;
+  min-width: 8px;
+  padding: 16px 112px 16px 16px;
 }
 
 .activity-top{
@@ -319,6 +325,7 @@ export default {
 .release-date {
   color: #666;
   font-size: 0.9em;
+  margin-right: 15px;
 }
 
 .release-board {
@@ -337,7 +344,8 @@ export default {
 }
 
 .add-story-btn {
-  width: 100%;
+  width: 202px;
+  margin-right: 14px;
   height: 50px;
   font-weight: 600;
   padding: 0.5rem;

@@ -65,7 +65,7 @@ router.beforeEach((to, from, next) => {
       store.state.auth.user.id
     );
     
-    if (!['admin', 'manager'].includes(userRole)) {
+    if (!['admin', 'manager', 'member'].includes(userRole)) {
       next('/forbidden');
       return;
     }

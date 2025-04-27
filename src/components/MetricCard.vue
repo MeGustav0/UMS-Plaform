@@ -1,9 +1,21 @@
 <template>
   <div class="metric-card">
-    <div class="icon">{{ icon }}</div>
+    <div class="header">
+      <div class="icon">{{ icon }}</div>
+      <h3>{{ title }}</h3>
+    </div>
+    
     <div class="content">
-      <h3 class="title">{{ title }}</h3>
-      <p class="value">{{ value }}</p>
+      <div class="main-value">{{ value }}</div>
+      
+      <div v-if="progress !== undefined" class="progress">
+        <div class="progress-bar" :style="{ width: progress + '%' }"></div>
+        <span>{{ progress }}%</span>
+      </div>
+      
+      <div v-if="overdue !== undefined" class="overdue">
+        🚨 Просрочено: {{ overdue }}
+      </div>
     </div>
   </div>
 </template>
@@ -19,6 +31,8 @@ export default {
       type: [String, Number],
       required: true
     },
+    progress: Number,
+    overdue: Number,
     icon: {
       type: String,
       default: '📊'

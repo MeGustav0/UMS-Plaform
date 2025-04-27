@@ -57,11 +57,6 @@
           </div>
         </div>
         <button @click="addTask" class="add-task">+ Задача</button>
-        <!-- <TaskItem 
-          :task="task"
-          :activityId="activity.id"
-          @edit="$emit('edit', $event)"
-        /> -->
       </div>
     </div>
   </template>
@@ -71,16 +66,21 @@
 
 export default {
   props: ['activity', 'projectId'],
+  computed: {
+    users() {
+      return this.$store.getters['auth/getAllUsers'] || [];
+    }
+  },
   methods: {
     addTask() {
       const newTask = {
         id: Date.now(),
         title: 'Новая задача',
-        description: '', // Добавляем
-        assignee: '', // Добавляем
+        description: '', 
+        assignee: '', 
         status: 'todo',
-        startDate: new Date().toISOString(), // Добавляем
-        endDate: null, // Добавляем
+        startDate: new Date().toISOString(), 
+        endDate: null, 
         activityId: this.activity.id
       };
       this.$store.commit('projects/ADD_TASK', {
@@ -197,7 +197,7 @@ export default {
   padding: 1rem;
   /* resize: horizontal;
   overflow: auto;  */
-  /* min-width: 280px; */
+  min-width: 308px;
   color: #3f3f3f;
   font-size: 0.8em;
 }

@@ -1,33 +1,30 @@
 <template>
   <div class="tasks-view">
     <h2 style="margin-top: 0;">Все задачи проекта</h2>
-    <div class="tasks-list" v-if="project?.activities?.length">
-      <div
-        v-for="activity in project.activities"
-        :key="activity.id"
-        class="activity-tasks"
-      >
+
+    <!-- Выбор релиза -->
+    <div v-if="projectReleases.length > 0" class="release-select">
+      <label>Выберите релиз:</label>
+      <select v-model="selectedReleaseId">
+        <option v-for="release in projectReleases" :key="release.id" :value="release.id">
+          {{ release.name }}
+        </option>
+      </select>
+    </div>
+
+    <div class="tasks-list" v-if="project?.activities?.length && selectedRelease">
+      <div v-for="activity in project.activities" :key="activity.id" class="activity-tasks">
         <h3 style="margin: 0;">{{ activity.title }}</h3>
 
-        <div
-          v-for="task in activity.tasks"
-          :key="task.id"
-          class="task-with-stories"
-        >
-          <!-- Существующий рендер задачи -->
+        <div v-for="task in activity.tasks" :key="task.id" class="task-with-stories">
           <TaskItem
             :task="task"
             :activityId="activity.id"
             @edit="$emit('edit', $event)"
           />
 
-          <!-- Блок историй под задачей -->
-          <div
-            v-for="story in getStories(activity.id, task.id)"
-            :key="story.id"
-            class="story-item clickable"
-            @click="openEditStoryModal(latestRelease.id, [activity.id, task.id], story)"
-          >
+          <div v-for="story in getStories(activity.id, task.id)" :key="story.id" class="story-item clickable"
+            @click="openEditStoryModal(selectedRelease.id, [activity.id, task.id], story)">
             <div class="story-header">
               <strong>{{ story.title }}</strong>
               <span class="status" :class="story.status">{{ story.status }}</span>
@@ -41,6 +38,7 @@
               {{ story.description }}
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -70,32 +68,33 @@ export default {
       showStoryModal: false,
       editingStory: null,
       editingReleaseId: null,
-      editingTaskPath: null
+      editingTaskPath: null,
+      selectedReleaseId: null // Новое состояние для выбранного релиза
     }
   },
   computed: {
     projectReleases() {
       return this.$store.getters['releases/projectReleases'](this.project.id)
     },
-    latestRelease() {
-      return this.projectReleases.slice(-1)[0] || null
+    selectedRelease() {
+      return this.projectReleases.find(r => r.id === this.selectedReleaseId) || null
     },
     projectMembers() {
-      if (!this.latestRelease) return []
+      if (!this.selectedRelease) return []
       const proj = this.$store.getters['projects/getProjectById'](this.project.id)
       return proj?.members || []
     }
   },
   methods: {
     getStories(activityId, taskId) {
-      if (!this.latestRelease) return []
-      const act = this.latestRelease.activitiesSnapshot.find(a => a.id === activityId)
+      if (!this.selectedRelease) return []
+      const act = this.selectedRelease.activitiesSnapshot.find(a => a.id === activityId)
       if (!act) return []
       const task = act.tasks.find(t => t.id === taskId)
       return task?.stories || []
     },
     formatDate(date) {
-      return new Date(date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      return date ? new Date(date).toLocaleDateString('ru-RU') : 'Не указано'
     },
     getUserName(userId) {
       const user = this.$store.state.auth.users.find(u => u.id === userId)
@@ -114,28 +113,27 @@ export default {
       this.editingTaskPath = null
     },
     handleSaveStory(updatedStory) {
+      if (!this.editingReleaseId) return
       if (updatedStory.id) {
         this.$store.commit('releases/UPDATE_STORY', {
           releaseId: this.editingReleaseId,
           taskPath: this.editingTaskPath,
           story: updatedStory
         })
+      } else {
+        updatedStory.id = Date.now()
+        this.$store.commit('releases/ADD_STORY', {
+          releaseId: this.editingReleaseId,
+          taskPath: this.editingTaskPath,
+          story: updatedStory
+        })
       }
-      if (updatedStory.id && this.latestRelease) {
-      this.$store.commit('releases/UPDATE_STORY', {
-      releaseId: this.editingReleaseId,
-      taskPath: this.editingTaskPath,
-      story: updatedStory
-    })
-  } else if (this.latestRelease) {
-    updatedStory.id = Date.now(); // Присваиваем ID если новая история
-    this.$store.commit('releases/ADD_STORY', {
-      releaseId: this.editingReleaseId,
-      taskPath: this.editingTaskPath,
-      story: updatedStory
-    })
-  }
       this.closeStoryModal()
+    }
+  },
+  mounted() {
+    if (this.projectReleases.length) {
+      this.selectedReleaseId = this.projectReleases[0].id
     }
   }
 }

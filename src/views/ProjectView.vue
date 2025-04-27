@@ -1,5 +1,5 @@
 <template>
-  <div v-if="project" :key="project.id + safeActivitiesLength">
+  <div v-if="project" :key="project.id + safeActivitiesLength + projectReleases.length">
   
      <!-- Хеадер -->
     <Header />
@@ -45,7 +45,12 @@
           @edit="handleEdit"
         />
         <!-- Статистика -->
-        <StatsView v-if="currentTab === 'stats'" :project="project" />
+        <StatsView 
+          v-if="currentTab === 'stats'"
+          :project="project"
+          :releases="projectReleases"
+          :chartData="chartData"
+        />
       </div>
     </div>
   </div>
@@ -60,6 +65,13 @@
     @save="handleSave"
     @close="showEditModal = false"
   />
+  <EditStoryModal
+    v-if="showStoryModal"
+    :story="editingItem"
+    :projectMembers="project.members || []"
+    @save="handleSaveStory"
+    @close="showStoryModal = false"
+  />
 </template>
 
 <script>
@@ -70,16 +82,20 @@ import TasksView from '@/components/TasksView.vue'
 import StatsView from '@/components/StatsView.vue'
 import Activity from '@/components/Activity.vue'
 import EditModal from '@/components/Modal/EditModal.vue'
+import EditStoryModal from '@/components/Modal/EditStoryModal.vue'
 import ReleasesContainer from '@/components/ReleasesContainer.vue'
 
 export default {
-  components: { Header, Sidebar, TaskItem, TasksView, StatsView, Activity, EditModal, ReleasesContainer, },
+  components: { Header, Sidebar, TaskItem, TasksView, StatsView, Activity, EditModal, ReleasesContainer, EditStoryModal },
   data() {
     return {
       currentTab: 'usm',
       showEditModal: false,
       editingType: null,
-      editingItem: null
+      editingItem: null,
+      showStoryModal: false,
+      newStoryReleaseId: null,
+      newStoryTaskPath: null,
     }
   },
   computed: {
@@ -118,6 +134,24 @@ export default {
     },
     safeActivitiesLength() {
       return this.project?.activities?.length || 0;
+    },
+    chartData() {
+      // Пример вычисления данных для диаграммы на основе активностей и задач проекта
+      const tasks = this.project.activities.flatMap(activity => activity.tasks);
+      
+      const statusCounts = ['todo', 'progress', 'done'].map(status => ({
+        label: this.statusLabels[status],
+        value: tasks.filter(task => task.status === status).length,
+      }));
+
+      return statusCounts;
+    },
+    statusLabels() {
+      return {
+        todo: 'To Do',
+        progress: 'In Progress',
+        done: 'Done'
+      };
     }
   },
   methods: {
@@ -172,25 +206,34 @@ export default {
       })
     },
     handleAddStory({ releaseId, taskPath }) {
-      
-      const title = prompt('Введите название истории:')
-  if (title) {
-    console.log('Adding story:', { releaseId, taskPath, title });
-    this.$store.commit('releases/ADD_STORY', {
-      releaseId,
-      taskPath,
-      story: {
-        id: Date.now(),
-        title,
+      this.newStoryReleaseId = releaseId;
+      this.newStoryTaskPath = taskPath;
+      this.editingItem = {
+        id: null,
+        title: '',
         status: 'todo',
         assignee: '',
         description: '',
         createdAt: new Date().toISOString(),
-        endDate: null
-      }
-    })
-  }
+        endDate: null,
+      };
+      this.editingType = 'story';
+      this.showStoryModal = true;
     },
+    handleSaveStory(updatedStory) {
+  if (!this.newStoryReleaseId || !this.newStoryTaskPath) return;
+
+  updatedStory.id = Date.now(); // создаём ID
+  this.$store.commit('releases/ADD_STORY', {
+    releaseId: this.newStoryReleaseId,
+    taskPath: this.newStoryTaskPath,
+    story: updatedStory,
+  });
+
+  this.showStoryModal = false;
+  this.newStoryReleaseId = null;
+  this.newStoryTaskPath = null;
+}
   },
 }
 </script>
