@@ -18,9 +18,11 @@
     "vue-draggable-next": "^2.2.1",
     "vue-router": "^4.0.3",
     "vue3-apexcharts": "^1.8.0",
+    "vue3-quill": "^0.3.1",
     "vuex": "^4.0.0"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-e2e-cypress": "~5.0.0",
     "@vue/cli-plugin-router": "~5.0.0",

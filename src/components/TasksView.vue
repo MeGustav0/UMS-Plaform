@@ -59,14 +59,17 @@
           <div v-for="story in getFilteredStories(activity.id, task.id)" :key="story.id" class="story-item clickable"
             @click="openEditStoryModal(selectedRelease.id, [activity.id, task.id], story)">
             <div class="story-header">
-              <strong>{{ story.title }}</strong>
-              <span class="status" :class="story.status">{{ story.status }}</span>
-              <span class="priority" v-html="priorityIcon(story.priority)"></span>
-            </div>
-            <div class="story-meta">
-              <span>Исполнитель: {{ getUserName(story.assignee) }}</span>
-              <span>Создано: {{ formatDate(story.createdAt) }}</span>
-              <span v-if="story.endDate">Дедлайн: {{ formatDate(story.endDate) }}</span>
+              <div class="story-header">
+                <span class="priority" v-html="priorityIcon(story.priority)"></span>
+                <strong>{{ story.title }}</strong>
+                <span class="status" :class="story.status">{{ story.status }}</span>
+              </div>
+              <div class="story-meta">
+                <span>Исполнитель: {{ getUserName(story.assignee) }}</span>
+                <!-- <span>Создано: {{ formatDate(story.createdAt) }}</span> -->
+                <span v-if="story.endDate">Дедлайн: {{ formatDate(story.endDate) }}</span>
+                <span v-if="story.closedAt">Закрыто: {{ formatDate(story.closedAt) }}</span>
+              </div>
             </div>
             <div class="story-description" v-if="story.description">
               {{ story.description }}
@@ -227,21 +230,28 @@ getFilteredStories(activityId, taskId) {
   position: relative;
   margin-left: auto;
   margin-right: auto;
-  width: 80%;
+  max-width: 70rem;
 }
 
 .task-item{
+  border-right:0;
+  border-top:0;
+  border-bottom:0;
   margin-bottom: 1rem;
+  border-left: 6px solid #fde549;
+  /* border-style: solid;
+  border-color: #fde549;  */
 }
 .activity-tasks{
   border: 3px dotted #3f3f3f;
   border-radius: 10px;
   padding: 10px;
-  margin-bottom: 20px; 
+  margin-bottom: 20px;
+  background: #ffffff; 
 }
 
 .task-with-stories {
-  background: #ffffff;
+  background: #f5f5f5;
   padding-bottom: 15px; 
   border-radius: 10px;
   margin-top: 0;
@@ -252,17 +262,18 @@ getFilteredStories(activityId, taskId) {
   cursor: pointer;
   padding: 0.75rem;
   border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
+  background: #f4faff;
   margin: 15px;
   margin-bottom: 0;
+  box-shadow: -5px 0px 0px 0px #ffa700;
   transition: background 0.2s;
 }
 .story-item.clickable:hover {
-  background: #f5f5f5;
+  background: #c2e3ff;
 }
 .story-header {
   display: flex;
-  justify-content: space-between;
+  gap: 20px;
   font-size: 1rem;
   margin-bottom: 0.25rem;
 }

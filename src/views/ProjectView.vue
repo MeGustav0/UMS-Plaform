@@ -2,7 +2,14 @@
   <div v-if="project">
     <!-- Хеадер -->
     <Header />
-    <div class="project-view">
+    <div
+      class="project-view"
+      ref="scrollContainer"
+      @mousedown="startDragging"
+      @mouseup="stopDragging"
+      @mouseleave="stopDragging"
+      @mousemove="drag"
+    >
       <!-- Сайдбар -->
       <Sidebar
         :project="project"
@@ -35,7 +42,9 @@
             </div>
 
             <div>
-              <button class="add-realese" @click="createRelease">Создать релиз</button>
+              <button class="add-realese" @click="createRelease">
+                Создать релиз
+              </button>
             </div>
           </div>
         </div>
@@ -107,11 +116,21 @@ export default {
       showStoryModal: false,
       newStoryReleaseId: null,
       newStoryTaskPath: null,
+      isRightMouseDown: false,
+      movedAfterRightClick: false,
+      lastRightClickPos: { x: 0, y: 0 },
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      scrollStartX: 0,
+      scrollStartY: 0,
     };
   },
   computed: {
     project() {
-      return this.$store.getters['projects/getProjectById'](this.projectId) || null;
+      return (
+        this.$store.getters["projects/getProjectById"](this.projectId) || null
+      );
     },
     projectId() {
       return this.$route.params.id;
@@ -223,12 +242,13 @@ export default {
       this.editingItem = {
         id: null,
         title: "",
-        priority: 'medium',
+        priority: "medium",
         status: "todo",
         assignee: "",
         description: "",
         createdAt: new Date().toISOString(),
         endDate: null,
+        comments: [],
       };
       this.editingType = "story";
       this.showStoryModal = true;
@@ -247,11 +267,68 @@ export default {
       this.newStoryReleaseId = null;
       this.newStoryTaskPath = null;
     },
+    startDragging(event) {
+      if (event.button !== 2) return; // Только правая кнопка
+      this.isRightMouseDown = true;
+      this.movedAfterRightClick = false;
+      this.lastRightClickPos = { x: event.clientX, y: event.clientY };
+
+      this.dragStartX = event.clientX;
+      this.dragStartY = event.clientY;
+      const container = this.$refs.scrollContainer;
+      this.scrollStartX = container.scrollLeft;
+      this.scrollStartY = container.scrollTop;
+    },
+    stopDragging(event) {
+      if (event.button === 2) {
+        // Если отпустил правую кнопку
+        setTimeout(() => {
+          this.isRightMouseDown = false;
+          this.movedAfterRightClick = false;
+        }, 0); // Сбрасываем на следующем тике
+      }
+    },
+    drag(event) {
+      if (!this.isRightMouseDown) return;
+
+      const dx = Math.abs(event.clientX - this.lastRightClickPos.x);
+      const dy = Math.abs(event.clientY - this.lastRightClickPos.y);
+
+      // Если мышка двинулась хоть немного — считаем, что это перетаскивание
+      if (dx > 3 || dy > 3) {
+        this.movedAfterRightClick = true;
+      }
+
+      const container = this.$refs.scrollContainer;
+      container.scrollLeft =
+        this.scrollStartX - (event.clientX - this.dragStartX);
+      container.scrollTop =
+        this.scrollStartY - (event.clientY - this.dragStartY);
+    },
+    onContextMenu(event) {
+      if (this.movedAfterRightClick) {
+        event.preventDefault(); // Блокируем если была тяга мыши
+      }
+    },
   },
+  mounted() {
+    this.$refs.scrollContainer.addEventListener('contextmenu', this.onContextMenu);
+  },
+  beforeUnmount() {
+    this.$refs.scrollContainer.removeEventListener('contextmenu', this.onContextMenu);
+  }
 };
 </script>
 
 <style scoped>
+.project-view {
+  overflow: auto;
+  cursor: grab;
+}
+
+.project-view:active {
+  cursor: grabbing;
+}
 .usm {
   display: flex;
   height: 100%;
@@ -274,7 +351,7 @@ export default {
 }
 
 .add-activity {
-  height: 110px;
+  height: 105px;
   font-weight: 600;
   margin: 1rem;
   padding: 0.5rem;
@@ -307,20 +384,20 @@ export default {
   padding-top: 15px;
 }
 
-.add-realese{
+.add-realese {
   width: 100%;
-    height: 46px;
-    text-align: left;
-    padding-left: 11px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    border: 0;
-    opacity: 0.05;
-    cursor: pointer;
-    transition: all 0.2s;
+  height: 46px;
+  text-align: left;
+  padding-left: 11px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 0;
+  opacity: 0.05;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.add-realese:hover{
+.add-realese:hover {
   background: #c5c4c475;
   opacity: 1;
   cursor: pointer;

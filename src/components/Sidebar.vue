@@ -87,11 +87,12 @@ export default {
   background: #424348;
   color: white;
   padding: 10px;
+  margin-top: 54px;
   min-height: calc(100vh - 74px);
   max-width: 180px;
   min-width: 160px;
   position: fixed;
-  z-index: 100;
+  z-index: 1;
 }
 
 .project-header {

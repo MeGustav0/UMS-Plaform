@@ -60,7 +60,7 @@
               <div>Почта:</div>
             </div>
             <div class="role-actions">
-              <span style="padding-right: 43px;">Роль:</span>
+              <span style="padding-right: 43px">Роль:</span>
             </div>
           </div>
           <div class="current-members">
@@ -296,11 +296,24 @@ textarea {
 }
 
 .delete-btn {
-  background: #e74c3c;
+  border: none;
+  background: #f52912d5;
   color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  height: 32px;
+  transition: all 0.3s;
+  border-radius: 5px;
+  padding: 0 10px;
 }
+
+.delete-btn:hover {
+  color: white;
+  background: #f52812;
+}
+
+
 .access-warning {
   color: #e74c3c;
   padding: 15px;
@@ -320,9 +333,10 @@ textarea {
   flex: 1;
   padding: 12px 25px;
   border-radius: 6px;
-  border: 2px solid #5c5f5f;
+  border: 0;
   cursor: pointer;
   font-weight: 600;
+  font-size: 16px;
   transition: all 0.2s;
 }
 
@@ -349,7 +363,6 @@ textarea {
   border-top: 1px solid #e2e8f0;
   max-height: 400px;
   overflow-y: auto;
-  padding-right: 10px;
 }
 
 h4 {
@@ -386,12 +399,24 @@ input[type="checkbox"] {
 
 select {
   padding: 0.4rem;
-  border: 1px solid #cbd5e0;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 0;
+  border-right: 0;
+  border-top:0;
   background: white;
   font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
+
+.add-member-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
 .member-add {
   border-right: 0;
+  border-left: 0;
   border-top-left-radius: 6px;
   border-bottom-left-radius: 6px;
 }
@@ -402,7 +427,8 @@ select {
 .add-btn {
   background: #4299e1;
   color: white;
-  padding: 0.5rem 1rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
   margin-left: 10px;
   border: none;
   border-radius: 6px;

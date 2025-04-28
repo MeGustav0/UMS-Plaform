@@ -2,7 +2,7 @@
   <div class="releases-container">
     <div v-for="release in releases" :key="release.id" class="release-block">
       <div class="release-header">
-        <div style="display: flex;">
+        <div style="display: flex">
           <h3 style="margin: 10px" @click="startEditingReleaseName(release)">
             <!-- Если мы редактируем этот релиз -->
             <template v-if="editingReleaseNameId === release.id">
@@ -267,11 +267,18 @@ export default {
       return user?.name || "—";
     },
     updateStoryStatus(releaseId, taskPath, story) {
-      if (!releaseId) return;
+      const updatedStory = { ...story };
+
+      if (updatedStory.status === "done") {
+        updatedStory.closedAt = new Date().toISOString();
+      } else {
+        updatedStory.closedAt = null;
+      }
+
       this.$store.commit("releases/UPDATE_STORY", {
         releaseId,
         taskPath,
-        story,
+        story: updatedStory,
       });
     },
     startDrag(event, releaseId, activityId, taskId) {
@@ -341,10 +348,10 @@ export default {
       });
     },
     deleteRelease(releaseId) {
-      if (confirm('Вы уверены, что хотите удалить этот релиз?')) {
-        this.$store.commit('releases/DELETE_RELEASE', releaseId);
+      if (confirm("Вы уверены, что хотите удалить этот релиз?")) {
+        this.$store.commit("releases/DELETE_RELEASE", releaseId);
       }
-    }
+    },
   },
 };
 </script>
@@ -488,9 +495,9 @@ export default {
 }
 
 .add-story-btn {
-  width: 202px;
-  margin-right: 14px;
-  height: 50px;
+  width: 216px;
+  min-height: 52px;
+  max-height: 134px;
   font-weight: 600;
   padding: 0.5rem;
   border: 0;

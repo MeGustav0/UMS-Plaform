@@ -2,7 +2,12 @@
   <div class="activity">
     <div class="activity-header">
       <div class="activity-top">
-        <div class="description pink" style="margin: 0px;border-radius: 6px; padding: 4px 8px;">{{ activity.title }}</div>
+        <div
+          class="description pink"
+          style="margin: 0px; border-radius: 6px; padding: 4px 8px"
+        >
+          {{ activity.title }}
+        </div>
         <div class="activity-actions">
           <button @click="openEdit('activity')" class="edit-btn pink hover">
             <img class="img_edit" src="../assets/edit.svg" alt="" />
@@ -12,7 +17,7 @@
           </button>
         </div>
       </div>
-      <div>
+      <div class="meta">
         <span class="description pink"
           ><img class="img_edit" src="../assets/user.svg" alt="" />:
           {{ getUserName(activity.owner) }}</span
@@ -53,7 +58,10 @@
                 class="priority-button-wrapper yellow"
                 @click.stop="togglePriorityMenu(task)"
               >
-              <button class="priority-button" v-html="priorityIcon(task.priority)"></button>
+                <button
+                  class="priority-button"
+                  v-html="priorityIcon(task.priority)"
+                ></button>
 
                 <div v-if="task.showPriorityMenu" class="priority-menu">
                   <div @click="changePriority(task, 'low')">
@@ -81,7 +89,9 @@
               </button>
             </div>
           </div>
-          <h3 style="margin-bottom: 0" class="description yellow">{{ task.title }}</h3>
+          <h3 style="margin-bottom: 0" class="description yellow">
+            {{ task.title }}
+          </h3>
           <!-- <div class="description yellow">{{ task.description || 'Нет описания' }}</div> -->
           <div class="description yellow">
             <img class="img_edit" src="../assets/user.svg" alt="" />:
@@ -187,13 +197,18 @@ export default {
       }
     },
     updateTaskStatus(task) {
+      const updatedTask = { ...task };
+
+      if (updatedTask.status === "done") {
+        updatedTask.closedAt = new Date().toISOString();
+      } else {
+        updatedTask.closedAt = null;
+      }
+
       this.$store.commit("projects/UPDATE_TASK", {
         projectId: this.projectId,
         activityId: this.activity.id,
-        task: {
-          ...task,
-          status: task.status,
-        },
+        task: updatedTask,
       });
     },
     getUserName(userId) {
@@ -323,8 +338,8 @@ export default {
 
 .add-task {
   font-weight: 600;
-  /* margin-top: 0.5rem; */
-  /* padding: 0.5rem; */
+  width: 100%;
+  height: 136px;
   border: 0;
   opacity: 0.05;
   cursor: pointer;

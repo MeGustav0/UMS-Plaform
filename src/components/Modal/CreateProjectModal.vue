@@ -255,9 +255,10 @@ textarea {
   flex: 1;
   padding: 12px 25px;
   border-radius: 6px;
-  border: 2px solid #5c5f5f;
+  border: 0;
   cursor: pointer;
   font-weight: 600;
+  font-size: 16px;
   transition: all 0.2s;
 }
 

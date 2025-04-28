@@ -39,13 +39,16 @@
           </option>
         </select>
       </div>
-
+      <div class="form-group">
+        <label>Дата закрытия</label>
+        <input type="text" :value="formatDate(local.closedAt)" disabled />
+      </div>
       <!-- Дедлайн -->
       <div class="form-group">
         <label>Дедлайн</label>
         <input type="date" v-model="local.endDate" />
       </div>
-
+      
       <!-- Описание -->
       <div class="form-group">
         <label>Описание</label>
@@ -134,6 +137,9 @@ export default {
 
     save() {
       this.$emit('save', { ...this.local });
+    },
+    formatDate(date) {
+      return date ? new Date(date).toLocaleDateString('ru-RU') : '—';
     }
   }
 };
@@ -214,9 +220,10 @@ select {
   flex: 1;
   padding: 12px 25px;
   border-radius: 6px;
-  border: 2px solid #5c5f5f;
+  border: 0;
   cursor: pointer;
   font-weight: 600;
+  font-size: 16px;
   transition: all 0.2s;
 }
 

@@ -1,7 +1,9 @@
 <template>
   <div class="modal-overlay">
     <div class="modal">
-      <h3>{{ story.id ? "Редактировать историю" : "Новая история" }}</h3>
+      <h3 style="margin-top: 0">
+        {{ story.id ? "Редактировать историю" : "Новая история" }}
+      </h3>
       <form @submit.prevent="saveStory">
         <div class="form-group">
           <label>Название</label>
@@ -44,12 +46,49 @@
           <label>Описание</label>
           <textarea v-model="localStory.description" rows="3" />
         </div>
-
+        <div class="form-group">
+          <label>Дата закрытия</label>
+          <input
+            type="text"
+            :value="formatDate(localStory.closedAt)"
+            disabled
+          />
+        </div>
         <div class="form-group">
           <label>Дедлайн</label>
           <input type="date" v-model="localStory.endDate" />
         </div>
+        <div class="comments-section">
+          <h4>Комментарии</h4>
 
+          <QuillEditor
+            v-model="newComment"
+            :options="editorOptions"
+            style="height: 150px"
+          />
+
+          <div class="file-upload">
+            <input type="file" @change="handleFileUpload" />
+          </div>
+
+          <button @click="addComment" class="add-comment-btn">
+            Добавить комментарий
+          </button>
+
+          <div
+            class="comment-item"
+            v-for="comment in localStory.comments"
+            :key="comment.id"
+          >
+            <div v-html="comment.content" class="comment-content"></div>
+            <div v-if="comment.files.length">
+              <div v-for="file in comment.files" :key="file.name">
+                <a :href="file.url" target="_blank">{{ file.name }}</a>
+              </div>
+            </div>
+            <div class="comment-date">{{ formatDate(comment.createdAt) }}</div>
+          </div>
+        </div>
         <div class="modal-actions">
           <button type="button" @click="$emit('close')">Отмена</button>
           <button type="submit">Сохранить</button>
@@ -60,11 +99,24 @@
 </template>
 
 <script>
+import { QuillEditor } from 'vue3-quill';
+import { generateId } from '@/utils/id'; 
+
 export default {
+  components: { QuillEditor },
   props: ["story", "projectMembers"],
   data() {
     return {
       localStory: { ...this.story },
+      newComment: '',
+      newFiles: [],
+      editorOptions: {
+        toolbar: [
+          ['bold', 'italic', 'underline'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['link']
+        ]
+      }
     };
   },
   methods: {
@@ -75,6 +127,36 @@ export default {
     getUserName(userId) {
       const user = this.$store.state.auth.users.find((u) => u.id === userId);
       return user?.name || "Неизвестный";
+    },
+    formatDate(date) {
+      return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
+    },
+    addComment() {
+      if (!this.localStory.comments) {
+        this.localStory.comments = [];
+      }
+      this.localStory.comments.push({
+        id: generateId(),
+        content: this.newComment,
+        createdAt: new Date().toISOString(),
+        files: [...this.newFiles]
+      });
+
+      this.newComment = '';
+      this.newFiles = [];
+    },
+    handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.newFiles.push({
+          name: file.name,
+          url: e.target.result
+        });
+      };
+      reader.readAsDataURL(file);
     },
   },
 };
@@ -195,9 +277,10 @@ textarea {
   flex: 1;
   padding: 12px 25px;
   border-radius: 6px;
-  border: 2px solid #5c5f5f;
+  border: 0;
   cursor: pointer;
   font-weight: 600;
+  font-size: 16px;
   transition: all 0.2s;
 }
 
@@ -217,5 +300,39 @@ textarea {
 
 .modal-actions button[type="submit"]:hover {
   background: #23ec77;
+}
+
+.comments-section {
+  margin-top: 20px;
+}
+
+.add-comment-btn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-comment-btn:hover {
+  background-color: #2980b9;
+}
+
+.comment-item {
+  margin-top: 15px;
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.comment-content {
+  margin-bottom: 8px;
+}
+
+.comment-date {
+  font-size: 12px;
+  color: #888;
 }
 </style>

@@ -4,7 +4,10 @@
 
 
 <script>
+import { QuillEditor } from 'vue3-quill';
+
 export default {
+  components: {QuillEditor},
   created() {
     this.$store.dispatch('auth/checkAuth');
   }
@@ -13,6 +16,30 @@ export default {
 
 
 <style>
+.scrollable-container {
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f0f0f0;
+  z-index: 100;
+}
+
+.scrollable-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollable-container::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.scrollable-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.scrollable-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
 #app {
   min-height: 98vh;
   /* word-break: break-word; */
@@ -26,8 +53,9 @@ export default {
 }
 .content-area {
   margin-top: 54px;
+  height: calc(100vh - 72px);
+  /* width: calc(100vw - 180px); */
   margin-left: 180px;
-  width: calc(100vw - 180px);
   display: flex;
 }
 .fade-enter-active,

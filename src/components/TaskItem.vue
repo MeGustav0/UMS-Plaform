@@ -9,7 +9,8 @@
           <span class="priority" v-html="priorityIcon(task.priority)"></span>
           <span class="status" :class="task.status">{{ statusLabel }}</span>
           <span>Исполнитель: {{ getUserName(task.assignee) }}</span>
-          <span>Начало: {{ formatDate(task.startDate) }}</span>
+          <!-- <span>Начало: {{ formatDate(task.startDate) }}</span> -->
+          <span  v-if="task.closedAt">Закрытие: {{ formatDate(task.closedAt) }}</span>
           <span>Дедлайн: {{ formatDate(task.endDate) }}</span>
         </div>
         <div>
