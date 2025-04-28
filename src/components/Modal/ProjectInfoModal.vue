@@ -21,50 +21,60 @@
           <label>Название:</label>
           <input v-model="localProject.name" required />
         </div>
-
         <div class="form-group">
           <label>Описание:</label>
           <textarea v-model="localProject.description"></textarea>
         </div>
-
         <!-- Управление участниками -->
         <div class="members-section">
-          <h4>Участники проекта</h4>
-
+          <h4 style="margin: 10px 0px">Участники проекта</h4>
           <!-- Выбор из членов организации -->
-          <div class="members-selector">
-            <div
-              v-for="member in orgMembers"
-              :key="member.userId"
-              class="member-item"
-            >
-              <label>
-                <input
-                  type="checkbox"
-                  :value="member.userId"
-                  v-model="selectedMembers"
-                />
+
+          <div class="add-member-controls">
+            <select v-model="selectedUserId" class="member-add">
+              <option disabled value="">-- Выберите пользователя --</option>
+              <option
+                v-for="member in availableOrgMembers"
+                :key="member.userId"
+                :value="member.userId"
+              >
                 {{ getUserName(member.userId) }}
-              </label>
-              <select v-model="memberRoles[member.userId]">
-                <option value="admin">Админ</option>
-                <option value="manager">Менеджер</option>
-                <option value="member">Исполнитель</option>
-              </select>
-            </div>
-            <button type="button" @click="addMembers" class="add-btn">
-              Добавить выбранных
+              </option>
+            </select>
+
+            <select v-model="selectedRole" class="role-add">
+              <option value="admin">Админ</option>
+              <option value="manager">Менеджер</option>
+              <option value="member">Исполнитель</option>
+            </select>
+
+            <button type="button" @click="addMember" class="add-btn">
+              Добавить
             </button>
           </div>
 
           <!-- Текущие участники -->
+          <div class="member-row" style="margin-top: 15px; font-weight: 600">
+            <div class="member-info">
+              <div style="width: 150px">Имя:</div>
+              <div>Почта:</div>
+            </div>
+            <div class="role-actions">
+              <span style="padding-right: 43px;">Роль:</span>
+            </div>
+          </div>
           <div class="current-members">
             <div
               v-for="member in localProject.members"
               :key="member.userId"
               class="member-row"
             >
-              <span>{{ getUserName(member.userId) }}</span>
+              <div class="member-info">
+                <div style="width: 150px">{{ getUserName(member.userId) }}</div>
+                <div class="member-email">
+                  {{ getUserEmail(member.userId) }}
+                </div>
+              </div>
               <div class="role-actions">
                 <span class="role-badge">{{ member.role }}</span>
                 <button
@@ -100,8 +110,8 @@ export default {
         ...this.project,
         members: this.project.members || [],
       },
-      selectedMembers: [],
-      memberRoles: {},
+      selectedUserId: "",
+      selectedRole: "member",
     };
   },
   computed: {
@@ -112,6 +122,13 @@ export default {
         (o) => o.id === this.localProject.orgId
       );
       return org?.members || [];
+    },
+
+    availableOrgMembers() {
+      return this.orgMembers.filter(
+        (member) =>
+          !this.localProject.members.some((m) => m.userId === member.userId)
+      );
     },
 
     // Проверка прав на редактирование
@@ -134,23 +151,39 @@ export default {
   },
   methods: {
     // Добавление выбранных участников
-    addMembers() {
-      this.selectedMembers.forEach((userId) => {
-        const exists = this.localProject.members.some(
-          (m) => m.userId === userId
-        );
-        if (!exists) {
-          this.localProject.members.push({
-            userId,
-            role: this.memberRoles[userId] || "member",
-          });
-        }
+    addMember() {
+      if (!this.selectedUserId) {
+        alert("Пожалуйста, выберите пользователя!");
+        return;
+      }
+      const exists = this.localProject.members.some(
+        (m) => m.userId === this.selectedUserId
+      );
+      if (exists) {
+        alert("Этот пользователь уже добавлен в проект!");
+        return;
+      }
+      this.localProject.members.push({
+        userId: this.selectedUserId,
+        role: this.selectedRole || "member",
       });
-      this.selectedMembers = [];
-    },
 
+      // Сбросить выбор
+      this.selectedUserId = "";
+      this.selectedRole = "member";
+    },
+    getUserEmail(userId) {
+      const user = this.$store.state.auth.users.find((u) => u.id === userId);
+      return user?.email || "Нет почты";
+    },
     // Удаление участника
     removeMember(userId) {
+      if (this.isMemberUsed(userId)) {
+        alert(
+          "Нельзя удалить участника, который закреплен за задачами или историями!"
+        );
+        return;
+      }
       this.localProject.members = this.localProject.members.filter(
         (m) => m.userId !== userId
       );
@@ -176,6 +209,24 @@ export default {
       const user = this.$store.state.auth.users.find((u) => u.id === userId);
       return user?.name || "Неизвестный";
     },
+    isMemberUsed(userId) {
+      const project = this.$store.getters["projects/getProjectById"](
+        this.localProject.id
+      );
+      if (!project) return false;
+
+      for (const activity of project.activities || []) {
+        if (activity.owner === userId) return true;
+        for (const task of activity.tasks || []) {
+          if (task.assignee === userId) return true;
+          for (const story of task.stories || []) {
+            if (story.assignee === userId) return true;
+          }
+        }
+      }
+
+      return false;
+    },
   },
 };
 </script>
@@ -199,7 +250,7 @@ export default {
   border-radius: 12px;
   padding: 30px;
   margin-top: 10vh;
-  width: 30%;
+  width: 40%;
   max-width: 600px;
   box-shadow: 0px 7px 20px 0px rgba(34, 60, 80, 0.2);
   color: #2c3e50;
@@ -240,35 +291,10 @@ textarea {
 }
 
 textarea {
-  height: 80px;
+  height: 50px;
   resize: vertical;
 }
 
-.user-list {
-  margin-top: 20px;
-  border-top: 1px solid #eee;
-  padding-top: 15px;
-}
-
-.user-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 12px;
-  padding: 4px;
-  padding-left: 10px;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.user-item select {
-  margin-left: auto;
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: 0;
-  background: #f4f4f4;
-}
 .delete-btn {
   background: #e74c3c;
   color: white;
@@ -321,6 +347,9 @@ textarea {
 .members-section {
   margin-top: 1.5rem;
   border-top: 1px solid #e2e8f0;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
 }
 
 h4 {
@@ -330,19 +359,12 @@ h4 {
   font-weight: 600;
 }
 
-.members-selector {
-  background: #f7fafc;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-}
-
 .member-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.35rem 0;
-  border-bottom: 1px solid #edf2f7;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .member-item:last-child {
@@ -359,22 +381,29 @@ h4 {
 input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #4299e1;
+  accent-color: #3498db;
 }
 
 select {
-  padding: 0.5rem;
-  border-radius: 6px;
+  padding: 0.4rem;
   border: 1px solid #cbd5e0;
   background: white;
   font-size: 0.9rem;
 }
-
+.member-add {
+  border-right: 0;
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+.role-add {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
 .add-btn {
-  margin-top: 1rem;
   background: #4299e1;
   color: white;
   padding: 0.5rem 1rem;
+  margin-left: 10px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -386,36 +415,49 @@ select {
 }
 
 .current-members {
-  margin-top: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .member-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  background: #f7fafc;
-  margin-bottom: 0.5rem;
-  border-radius: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.member-info {
+  display: flex;
+}
+
+.member-email {
+  color: #777;
 }
 
 .role-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
 }
 
 .role-badge {
   background: #48bb78;
   color: white;
+  width: 55px;
+  text-align: center;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.8rem;
   text-transform: capitalize;
 }
 
-.role-badge[value="admin"] { background: #4299e1; }
-.role-badge[value="manager"] { background: #f6ad55; }
+.role-badge[value="admin"] {
+  background: #4299e1;
+}
+.role-badge[value="manager"] {
+  background: #f6ad55;
+}
 
 .remove-btn {
   background: none;
@@ -438,20 +480,15 @@ select {
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   select {
     width: 100%;
   }
-  
+
   .member-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
-  }
-  
-  .role-actions {
-    width: 100%;
-    justify-content: space-between;
   }
 }
 </style>

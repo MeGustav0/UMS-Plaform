@@ -43,6 +43,8 @@
 </template>
 
 <script>
+import { generateId } from '@/utils/id';
+
 export default {
   props: ['orgId'],
   data: () => ({
@@ -88,7 +90,7 @@ export default {
     },
     createOrganization() {
       const newOrg = {
-        id: Date.now(),
+        id: generateId(),
         name: this.newOrgName || "Новая организация",
         creatorId: this.user.id
       };

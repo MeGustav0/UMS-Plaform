@@ -6,12 +6,13 @@
       </div>
       <div class="item">
         <div class="item">
+          <span class="priority" v-html="priorityIcon(task.priority)"></span>
           <span class="status" :class="task.status">{{ statusLabel }}</span>
-          <span>Исполнитель: {{ task.assignee || 'Не назначен' }}</span>
+          <span>Исполнитель: {{ getUserName(task.assignee) }}</span>
           <span>Начало: {{ formatDate(task.startDate) }}</span>
           <span>Дедлайн: {{ formatDate(task.endDate) }}</span>
         </div>
-        <div >
+        <div>
           <button @click="openEdit">✏️</button>
         </div>
       </div>
@@ -26,64 +27,41 @@
 
 <script>
 export default {
-  props: {
-    task: {
-      type: Object,
-      required: true
+  props: ["task", "activityId"],
+  methods: {
+    formatDate(date) {
+      return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
     },
-    activityId: {
-      type: [Number, String],
-      required: true
-    }
+    getUserName(userId) {
+      const user = this.$store.state.auth.users.find(u => u.id === userId);
+      return user?.name || "Не назначен";
+    },
+    openEdit() {
+      this.$emit("edit", {
+        type: "task",
+        data: { ...this.task, activityId: this.activityId }
+      });
+    },
+    priorityIcon(priority) {
+      const size = 16;
+      const color = { low: "green", medium: "orange", high: "red" }[priority] || "gray";
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="${color}" />
+        </svg>
+      `;
+    },
   },
   computed: {
     statusLabel() {
-      const labels = {
-        todo: 'To Do',
-        progress: 'In Progress',
-        done: 'Done'
-      }
-      return labels[this.task.status]
-    },
-  },
-  methods: {
-    updateTask() {
-      this.$emit('update', {
-        ...this.task,
-        activityId: this.activityId
-      })
-    },
-    formatDate(dateString) {
-      if (!dateString) return 'Нет срока';
-      return new Date(dateString).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-    },
-    openEdit() {
-      this.$emit('edit', {
-        type: 'task',
-        data: {
-          ...this.task,
-          activityId: this.activityId
-        }
-      });
-    }
-    
-  },
-  props: {
-    task: {
-      type: Object,
-      required: true,
-      validator: (task) => ['id', 'title', 'status'].every(key => key in task)
-    },
-    activityId: {
-      type: [Number, String],
-      required: true
+      return {
+        todo: "To Do",
+        progress: "In Progress",
+        done: "Done"
+      }[this.task.status] || "Неизвестно";
     }
   }
-}
+};
 </script>
   
 <style scoped>

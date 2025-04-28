@@ -52,6 +52,10 @@ export default {
       if (project) {
         project.activities.push(activity);
       }
+      this.commit('releases/ADD_ACTIVITY_TO_RELEASES', {
+        projectId,
+        activity
+      });
     },
     
     // Добавление задачи
@@ -59,6 +63,11 @@ export default {
       const project = state.projects.find(p => p.id === projectId);
       const activity = project?.activities.find(a => a.id === activityId);
       if (activity) activity.tasks.push(task);
+      this.commit('releases/ADD_TASK_TO_RELEASES', {
+        projectId,
+        activityId,
+        task
+      });
     },
     
     // Перемещение задачи
@@ -81,12 +90,21 @@ export default {
       if (activity) {
         activity.tasks = activity.tasks.filter(t => t.id !== taskId)
       }
+      this.commit('releases/DELETE_TASK_FROM_RELEASES', {
+        projectId,
+        activityId,
+        taskId
+      });
     },
     DELETE_ACTIVITY(state, { projectId, activityId }) {
       const project = state.projects.find(p => p.id === projectId)
       if (project) {
         project.activities = project.activities.filter(a => a.id !== activityId)
       }
+      this.commit('releases/DELETE_ACTIVITY_FROM_RELEASES', {
+        projectId,
+        activityId
+      });
     },
     UPDATE_TASK(state, { projectId, activityId, task }) {
       const project = state.projects.find(p => p.id === projectId);
@@ -116,7 +134,7 @@ export default {
   },
   getters: {
     getProjectById: (state) => (id) => 
-      state.projects.find(p => p.id === Number(id)),
+      state.projects.find(p => p.id == id),
     allTasks: (state) => (projectId) => {
       const project = state.projects.find(p => p.id === projectId)
       return project?.activities?.flatMap(a => a.tasks) || []

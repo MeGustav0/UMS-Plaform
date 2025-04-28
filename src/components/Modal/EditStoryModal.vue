@@ -1,7 +1,7 @@
 <template>
   <div class="modal-overlay">
     <div class="modal">
-      <h3>{{ story.id ? 'Редактировать историю' : 'Новая история' }}</h3>
+      <h3>{{ story.id ? "Редактировать историю" : "Новая история" }}</h3>
       <form @submit.prevent="saveStory">
         <div class="form-group">
           <label>Название</label>
@@ -18,12 +18,21 @@
         </div>
 
         <div class="form-group">
+          <label>Приоритет</label>
+          <select v-model="localStory.priority">
+            <option value="low">Низкий</option>
+            <option value="medium">Средний</option>
+            <option value="high">Высокий</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label>Исполнитель:</label>
           <select v-model="localStory.assignee">
             <option disabled value="">-- выберите --</option>
-            <option 
-              v-for="member in projectMembers" 
-              :key="member.userId" 
+            <option
+              v-for="member in projectMembers"
+              :key="member.userId"
               :value="member.userId"
             >
               {{ getUserName(member.userId) }}
@@ -52,24 +61,23 @@
 
 <script>
 export default {
-  props: ['story', 'projectMembers'],
+  props: ["story", "projectMembers"],
   data() {
     return {
-      localStory: { ...this.story }
+      localStory: { ...this.story },
     };
   },
   methods: {
     saveStory() {
-      this.$emit('save', this.localStory);
-      this.$emit('close');
+      this.$emit("save", this.localStory);
+      this.$emit("close");
     },
     getUserName(userId) {
-      const user = this.$store.state.auth.users.find(u => u.id === userId);
-      return user?.name || 'Неизвестный';
-    }
+      const user = this.$store.state.auth.users.find((u) => u.id === userId);
+      return user?.name || "Неизвестный";
+    },
   },
-  
-}
+};
 </script>
 
 <style scoped>
@@ -120,7 +128,8 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 0;
   display: flex;

@@ -1,4 +1,5 @@
 import { compare, hash } from 'bcryptjs';
+import { generateId } from '@/utils/id';
 
 export default {
   namespaced: true,
@@ -36,7 +37,7 @@ export default {
       try {
         const hashedPassword = await hash(password, 10);
         const user = {
-          id: Date.now(),
+          id: generateId(),
           email,
           name,
           password: hashedPassword
@@ -44,7 +45,7 @@ export default {
 
         // Создаем организацию
         const org = {
-          id: Date.now(),
+          id: generateId(),
           name: `${name}'s Organization`,
           creatorId: user.id
         };

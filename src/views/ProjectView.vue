@@ -1,11 +1,10 @@
 <template>
-  <div v-if="project" :key="project.id + safeActivitiesLength + projectReleases.length">
-  
-     <!-- Хеадер -->
+  <div v-if="project">
+    <!-- Хеадер -->
     <Header />
     <div class="project-view">
       <!-- Сайдбар -->
-      <Sidebar 
+      <Sidebar
         :project="project"
         :currentTab="currentTab"
         @change-tab="currentTab = $event"
@@ -13,18 +12,20 @@
       <!-- Основной контент -->
       <div class="content-area">
         <!-- USM -->
-        <div  v-if="currentTab === 'usm'">
+        <div v-if="currentTab === 'usm'">
           <div class="usm-board">
             <div class="usm">
-              <Activity 
-                v-for="activity in project.activities" 
+              <Activity
+                v-for="activity in project.activities"
                 :key="activity.id"
                 :activity="activity"
                 @edit="handleEdit"
                 :projectId="projectId"
                 @delete="handleDeleteActivity"
               />
-              <button class="add-activity" @click="addActivity">+ Активность</button>
+              <button class="add-activity" @click="addActivity">
+                + Активность
+              </button>
             </div>
             <div>
               <ReleasesContainer
@@ -32,20 +33,20 @@
                 @add-story="handleAddStory"
               />
             </div>
-            
+
             <div>
-              <button @click="createRelease">Создать релиз</button>
+              <button class="add-realese" @click="createRelease">Создать релиз</button>
             </div>
           </div>
         </div>
         <!-- Задачи -->
-        <TasksView 
-          v-if="currentTab === 'tasks'" 
-          :project="project" 
+        <TasksView
+          v-if="currentTab === 'tasks'"
+          :project="project"
           @edit="handleEdit"
         />
         <!-- Статистика -->
-        <StatsView 
+        <StatsView
           v-if="currentTab === 'stats'"
           :project="project"
           :releases="projectReleases"
@@ -54,14 +55,13 @@
       </div>
     </div>
   </div>
-  
-  <div v-else>
-    Проект не найден
-  </div>
+
+  <div v-else>Проект не найден</div>
   <EditModal
     v-if="showEditModal"
     :data="editingItem"
     :type="editingType"
+    :projectMembers="project.members || []"
     @save="handleSave"
     @close="showEditModal = false"
   />
@@ -75,171 +75,184 @@
 </template>
 
 <script>
-import Header from '@/components/Header.vue'
-import Sidebar from '@/components/Sidebar.vue'
-import TaskItem from '@/components/TaskItem.vue'
-import TasksView from '@/components/TasksView.vue'
-import StatsView from '@/components/StatsView.vue'
-import Activity from '@/components/Activity.vue'
-import EditModal from '@/components/Modal/EditModal.vue'
-import EditStoryModal from '@/components/Modal/EditStoryModal.vue'
-import ReleasesContainer from '@/components/ReleasesContainer.vue'
+import Header from "@/components/Header.vue";
+import Sidebar from "@/components/Sidebar.vue";
+import TaskItem from "@/components/TaskItem.vue";
+import TasksView from "@/components/TasksView.vue";
+import StatsView from "@/components/StatsView.vue";
+import Activity from "@/components/Activity.vue";
+import EditModal from "@/components/Modal/EditModal.vue";
+import EditStoryModal from "@/components/Modal/EditStoryModal.vue";
+import ReleasesContainer from "@/components/ReleasesContainer.vue";
+import { generateId } from "@/utils/id";
 
 export default {
-  components: { Header, Sidebar, TaskItem, TasksView, StatsView, Activity, EditModal, ReleasesContainer, EditStoryModal },
+  components: {
+    Header,
+    Sidebar,
+    TaskItem,
+    TasksView,
+    StatsView,
+    Activity,
+    EditModal,
+    ReleasesContainer,
+    EditStoryModal,
+  },
   data() {
     return {
-      currentTab: 'usm',
+      currentTab: "usm",
       showEditModal: false,
       editingType: null,
       editingItem: null,
       showStoryModal: false,
       newStoryReleaseId: null,
       newStoryTaskPath: null,
-    }
+    };
   },
   computed: {
     project() {
-      return this.$store.getters['projects/getProjectById'](this.projectId) || {};
+      return this.$store.getters['projects/getProjectById'](this.projectId) || null;
     },
     projectId() {
-      return Number(this.$route.params.id);
+      return this.$route.params.id;
     },
     isAdmin() {
-      return this.$store.state.auth.user?.role === 'admin'
+      return this.$store.state.auth.user?.role === "admin";
     },
     isManager() {
-    return this.project.members?.some(m => 
-      m.id === this.$store.state.auth.user?.id && 
-      m.role === 'manager'
-    )
+      return this.project.members?.some(
+        (m) => m.id === this.$store.state.auth.user?.id && m.role === "manager"
+      );
     },
     projectExists() {
-      return this.$store.getters['projects/getProjectById'](this.projectId)
+      return this.$store.getters["projects/getProjectById"](this.projectId);
     },
     userRole() {
-      return this.$store.getters['organizations/getUserRole'](
-        this.project.orgId, 
+      return this.$store.getters["organizations/getUserRole"](
+        this.project.orgId,
         this.$store.state.auth.user.id
       );
     },
     canEditProject() {
-      return this.$store.getters['organizations/canEditProject'](
-        this.project.orgId,
-        this.$store.state.auth.user?.id
-      );
+      if (!this.project || !this.project.members) return false;
+      const userId = this.$store.state.auth.user?.id;
+      const member = this.project.members.find((m) => m.userId == userId);
+      return member && ["admin", "manager"].includes(member.role);
     },
-    projectReleases() { 
-      return this.$store.getters['releases/projectReleases'](this.projectId)
+    projectReleases() {
+      return this.$store.getters["releases/projectReleases"](this.projectId);
     },
     safeActivitiesLength() {
       return this.project?.activities?.length || 0;
     },
     chartData() {
       // Пример вычисления данных для диаграммы на основе активностей и задач проекта
-      const tasks = this.project.activities.flatMap(activity => activity.tasks);
-      
-      const statusCounts = ['todo', 'progress', 'done'].map(status => ({
+      const tasks = this.project.activities.flatMap(
+        (activity) => activity.tasks
+      );
+
+      const statusCounts = ["todo", "progress", "done"].map((status) => ({
         label: this.statusLabels[status],
-        value: tasks.filter(task => task.status === status).length,
+        value: tasks.filter((task) => task.status === status).length,
       }));
 
       return statusCounts;
     },
     statusLabels() {
       return {
-        todo: 'To Do',
-        progress: 'In Progress',
-        done: 'Done'
+        todo: "To Do",
+        progress: "In Progress",
+        done: "Done",
       };
-    }
+    },
   },
   methods: {
     addActivity() {
       const newActivity = {
-        id: Date.now(),
-        title: 'Новая активность',
+        id: generateId(),
+        title: "Новая активность",
         orgId: this.project.orgId,
-        description: '',
-        owner: '',
+        description: "",
+        owner: "",
         startDate: new Date().toISOString(),
         endDate: null,
-        tasks: []
+        tasks: [],
       };
-      this.$store.commit('projects/ADD_ACTIVITY', {
+      this.$store.commit("projects/ADD_ACTIVITY", {
         projectId: this.project.id,
-        activity: newActivity
+        activity: newActivity,
       });
     },
     handleDeleteActivity(activityId) {
-      this.$store.commit('projects/DELETE_ACTIVITY', {
+      this.$store.commit("projects/DELETE_ACTIVITY", {
         projectId: this.projectId,
-        activityId: activityId
-      })
+        activityId: activityId,
+      });
     },
     handleEdit(payload) {
-      console.log('Edit event:', payload);
+      console.log("Edit event:", payload);
       this.editingType = payload.type;
       this.editingItem = payload.data;
       this.showEditModal = true;
     },
     handleSave(updatedData) {
-      console.log('Saving:', updatedData);
-      if (this.editingType === 'activity') {
-        this.$store.commit('projects/UPDATE_ACTIVITY', {
+      console.log("Saving:", updatedData);
+      if (this.editingType === "activity") {
+        this.$store.commit("projects/UPDATE_ACTIVITY", {
           projectId: this.projectId,
-          activity: updatedData
+          activity: updatedData,
         });
-      } else if (this.editingType === 'task') {
-        this.$store.commit('projects/UPDATE_TASK', {
+      } else if (this.editingType === "task") {
+        this.$store.commit("projects/UPDATE_TASK", {
           projectId: this.projectId,
           activityId: updatedData.activityId,
-          task: updatedData
+          task: updatedData,
         });
       }
       this.showEditModal = false;
     },
     createRelease() {
-      this.$store.dispatch('releases/createRelease', {
+      this.$store.dispatch("releases/createRelease", {
         projectId: this.projectId,
-        name: 'Новый релиз'
-      })
+        name: "Новый релиз",
+      });
     },
     handleAddStory({ releaseId, taskPath }) {
       this.newStoryReleaseId = releaseId;
       this.newStoryTaskPath = taskPath;
       this.editingItem = {
         id: null,
-        title: '',
-        status: 'todo',
-        assignee: '',
-        description: '',
+        title: "",
+        priority: 'medium',
+        status: "todo",
+        assignee: "",
+        description: "",
         createdAt: new Date().toISOString(),
         endDate: null,
       };
-      this.editingType = 'story';
+      this.editingType = "story";
       this.showStoryModal = true;
     },
     handleSaveStory(updatedStory) {
-  if (!this.newStoryReleaseId || !this.newStoryTaskPath) return;
+      if (!this.newStoryReleaseId || !this.newStoryTaskPath) return;
 
-  updatedStory.id = Date.now(); // создаём ID
-  this.$store.commit('releases/ADD_STORY', {
-    releaseId: this.newStoryReleaseId,
-    taskPath: this.newStoryTaskPath,
-    story: updatedStory,
-  });
+      updatedStory.id = generateId(); // создаём ID
+      this.$store.commit("releases/ADD_STORY", {
+        releaseId: this.newStoryReleaseId,
+        taskPath: this.newStoryTaskPath,
+        story: updatedStory,
+      });
 
-  this.showStoryModal = false;
-  this.newStoryReleaseId = null;
-  this.newStoryTaskPath = null;
-}
+      this.showStoryModal = false;
+      this.newStoryReleaseId = null;
+      this.newStoryTaskPath = null;
+    },
   },
-}
+};
 </script>
 
 <style scoped>
-.usm{
+.usm {
   display: flex;
   height: 100%;
   border: dotted;
@@ -249,7 +262,7 @@ export default {
   border-left: 0;
 }
 
-.main-layout{
+.main-layout {
   display: flex;
 }
 .usm-board {
@@ -261,7 +274,7 @@ export default {
 }
 
 .add-activity {
-  height: 135px;
+  height: 110px;
   font-weight: 600;
   margin: 1rem;
   padding: 0.5rem;
@@ -294,4 +307,23 @@ export default {
   padding-top: 15px;
 }
 
+.add-realese{
+  width: 100%;
+    height: 46px;
+    text-align: left;
+    padding-left: 11px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 0;
+    opacity: 0.05;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-realese:hover{
+  background: #c5c4c475;
+  opacity: 1;
+  cursor: pointer;
+  transition: background 0.2s;
+}
 </style>

@@ -15,7 +15,9 @@ export default {
 <style>
 #app {
   min-height: 98vh;
-  /* width: fit-content; */
+  /* word-break: break-word; */
+  /* text-overflow: ellipsis;
+  overflow: hidden; */
   display: flex;
   font-family: Arial, sans-serif;
   flex-direction: column;

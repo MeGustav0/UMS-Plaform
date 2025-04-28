@@ -55,10 +55,10 @@ router.beforeEach((to, from, next) => {
     const projectId = to.params.id;
     const project = store.getters['projects/getProjectById'](projectId);
     
-    if (!project) {
-      next('/404');
-      return;
-    }
+    // if (!project) {
+    //   next('/404');
+    //   return;
+    // }
     
     const userRole = store.getters['organizations/getUserRole'](
       project.orgId,

@@ -2,44 +2,65 @@
   <div class="releases-container">
     <div v-for="release in releases" :key="release.id" class="release-block">
       <div class="release-header">
-        <h3 style="margin: 10px;" @click="startEditingReleaseName(release)">
-          <!-- Если мы редактируем этот релиз -->
-          <template v-if="editingReleaseNameId === release.id">
-            <input
-              v-model="newReleaseName"
-              @blur="saveReleaseName(release.id)"
-              @keydown.enter="saveReleaseName(release.id)"
-              class="release-name-input"
-              autofocus
-            />
-          </template>
+        <div style="display: flex;">
+          <h3 style="margin: 10px" @click="startEditingReleaseName(release)">
+            <!-- Если мы редактируем этот релиз -->
+            <template v-if="editingReleaseNameId === release.id">
+              <input
+                v-model="newReleaseName"
+                @blur="saveReleaseName(release.id)"
+                @keydown.enter="saveReleaseName(release.id)"
+                class="release-name-input"
+                autofocus
+              />
+            </template>
 
-          <!-- Просто название если не редактируем -->
-          <template v-else>
-            {{ release.name }}
-          </template>
-        </h3>
+            <!-- Просто название если не редактируем -->
+            <template v-else>
+              {{ release.name }}
+            </template>
+          </h3>
+          <button @click="deleteRelease(release.id)" class="delete-release-btn">
+            Удалить
+          </button>
+        </div>
+
         <span class="release-date">{{ formatDate(release.createdAt) }}</span>
       </div>
 
       <div class="release-board">
-        <div v-for="activity in release.activitiesSnapshot" :key="activity.id" class="activity-release">
-          <div 
-            v-for="task in activity.tasks" 
-            :key="task.id" 
-            class="task-release" 
+        <div
+          v-for="activity in release.activitiesSnapshot"
+          :key="activity.id"
+          class="activity-release"
+        >
+          <div
+            v-for="task in activity.tasks"
+            :key="task.id"
+            class="task-release"
             draggable="true"
             @dragstart="startDrag($event, release.id, activity.id, task.id)"
             @drop="onDrop($event, release.id, activity.id)"
             @dragover.prevent
           >
-            <div v-for="story in task.stories" :key="story.id" class="story-item" draggable="false">
-              <div style="width: 100%;">
+            <div
+              v-for="story in task.stories"
+              :key="story.id"
+              class="story-item"
+              draggable="false"
+            >
+              <div style="width: 100%">
                 <div class="activity-top">
                   <div class="task-status">
                     <select
                       v-model="story.status"
-                      @change="updateStoryStatus(release.id, [activity.id, task.id], story)"
+                      @change="
+                        updateStoryStatus(
+                          release.id,
+                          [activity.id, task.id],
+                          story
+                        )
+                      "
                       class="status-select"
                       :class="story.status"
                     >
@@ -50,14 +71,72 @@
                   </div>
 
                   <div class="activity-actions">
+                    <div
+                      class="priority-button-wrapper orange"
+                      @click.stop="toggleStoryPriorityMenu(story)"
+                    >
+                      <button
+                        class="priority-button hover"
+                        v-html="priorityIcon(story.priority)"
+                      ></button>
+
+                      <div v-if="story.showPriorityMenu" class="priority-menu">
+                        <div
+                          @click="
+                            changeStoryPriority(story, 'low', release.id, [
+                              activity.id,
+                              task.id,
+                            ])
+                          "
+                        >
+                          <span v-html="priorityIcon('low')"></span>
+                        </div>
+                        <div
+                          @click="
+                            changeStoryPriority(story, 'medium', release.id, [
+                              activity.id,
+                              task.id,
+                            ])
+                          "
+                        >
+                          <span v-html="priorityIcon('medium')"></span>
+                        </div>
+                        <div
+                          @click="
+                            changeStoryPriority(story, 'high', release.id, [
+                              activity.id,
+                              task.id,
+                            ])
+                          "
+                        >
+                          <span v-html="priorityIcon('high')"></span>
+                        </div>
+                      </div>
+                    </div>
                     <button
-                      @click="openEditStoryModal(release.id, [activity.id, task.id], story)"
+                      @click="
+                        openEditStoryModal(
+                          release.id,
+                          [activity.id, task.id],
+                          story
+                        )
+                      "
                       class="edit-btn orange hover"
                     >
-                      <img class="img_edit" src="../assets/edit.svg" alt="Редактировать" />
+                      <img
+                        class="img_edit"
+                        src="../assets/edit.svg"
+                        alt="Редактировать"
+                      />
                     </button>
                     <button
-                      @click.stop="deleteStory(release.id, [activity.id, task.id], story.id)"
+                      @click.stop="
+                        deleteStory(
+                          release.id,
+                          [activity.id, task.id],
+                          story.id
+                        )
+                      "
                       class="delete-btn orange hover"
                     >
                       ✖
@@ -65,7 +144,9 @@
                   </div>
                 </div>
 
-                <h4 style="margin-bottom: 0" class="description">{{ story.title }}</h4>
+                <h4 style="margin-bottom: 0" class="description orange">
+                  {{ story.title }}
+                </h4>
 
                 <div class="description orange">
                   <img class="img_edit" src="../assets/user.svg" alt="" />:
@@ -104,6 +185,7 @@
 
 <script>
 import EditStoryModal from "./Modal/EditStoryModal.vue";
+import { generateId } from "@/utils/id";
 
 export default {
   components: { EditStoryModal },
@@ -122,14 +204,16 @@ export default {
       editingReleaseId: null,
       editingTaskPath: null,
       editingReleaseNameId: null,
-      newReleaseName: '',
+      newReleaseName: "",
     };
   },
   computed: {
     projectMembers() {
-      const release = this.releases.find(r => r.id === this.editingReleaseId);
+      const release = this.releases.find((r) => r.id === this.editingReleaseId);
       if (!release) return [];
-      const project = this.$store.state.projects.projects.find(p => p.id === release.projectId);
+      const project = this.$store.state.projects.projects.find(
+        (p) => p.id === release.projectId
+      );
       return project?.members || [];
     },
   },
@@ -157,7 +241,7 @@ export default {
           story: updatedStory,
         });
       } else {
-        updatedStory.id = Date.now();
+        updatedStory.id = generateId();
         this.$store.commit("releases/ADD_STORY", {
           releaseId: this.editingReleaseId,
           taskPath: this.editingTaskPath,
@@ -168,14 +252,18 @@ export default {
     },
     deleteStory(releaseId, taskPath, storyId) {
       if (confirm("Удалить эту историю?")) {
-        this.$store.commit("releases/DELETE_STORY", { releaseId, taskPath, storyId });
+        this.$store.commit("releases/DELETE_STORY", {
+          releaseId,
+          taskPath,
+          storyId,
+        });
       }
     },
     formatDate(date) {
       return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
     },
     getUserName(id) {
-      const user = this.$store.state.auth.users.find(u => u.id === id);
+      const user = this.$store.state.auth.users.find((u) => u.id === id);
       return user?.name || "—";
     },
     updateStoryStatus(releaseId, taskPath, story) {
@@ -187,23 +275,26 @@ export default {
       });
     },
     startDrag(event, releaseId, activityId, taskId) {
-      event.dataTransfer.setData('text/plain', JSON.stringify({
-        releaseId,
-        activityId,
-        taskId
-      }));
+      event.dataTransfer.setData(
+        "text/plain",
+        JSON.stringify({
+          releaseId,
+          activityId,
+          taskId,
+        })
+      );
     },
     onDrop(event, targetReleaseId, targetActivityId) {
-      const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+      const data = JSON.parse(event.dataTransfer.getData("text/plain"));
       if (!data) return;
 
       // Перемещаем задачу через мутацию
-      this.$store.commit('releases/MOVE_TASK_BETWEEN_ACTIVITIES', {
+      this.$store.commit("releases/MOVE_TASK_BETWEEN_ACTIVITIES", {
         fromReleaseId: data.releaseId,
         fromActivityId: data.activityId,
         toReleaseId: targetReleaseId,
         toActivityId: targetActivityId,
-        taskId: data.taskId
+        taskId: data.taskId,
       });
     },
     startEditingReleaseName(release) {
@@ -212,14 +303,48 @@ export default {
     },
     saveReleaseName(releaseId) {
       if (this.newReleaseName.trim()) {
-        this.$store.commit('releases/UPDATE_RELEASE_NAME', {
+        this.$store.commit("releases/UPDATE_RELEASE_NAME", {
           releaseId,
-          newName: this.newReleaseName.trim()
+          newName: this.newReleaseName.trim(),
         });
       }
       this.editingReleaseNameId = null;
-      this.newReleaseName = '';
+      this.newReleaseName = "";
     },
+    priorityIcon(priority) {
+      const size = 16; // размер кружка
+      const color =
+        {
+          low: "#70b013",
+          medium: "orange",
+          high: "#ff0000b3",
+        }[priority] || "#aeaeae";
+
+      return `
+      <svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" fill="${color}" />
+      </svg>
+    `;
+    },
+    toggleStoryPriorityMenu(story) {
+      story.showPriorityMenu = !story.showPriorityMenu;
+    },
+
+    changeStoryPriority(story, newPriority, releaseId, taskPath) {
+      story.priority = newPriority;
+      story.showPriorityMenu = false;
+
+      this.$store.commit("releases/UPDATE_STORY", {
+        releaseId,
+        taskPath,
+        story: { ...story },
+      });
+    },
+    deleteRelease(releaseId) {
+      if (confirm('Вы уверены, что хотите удалить этот релиз?')) {
+        this.$store.commit('releases/DELETE_RELEASE', releaseId);
+      }
+    }
   },
 };
 </script>
@@ -263,13 +388,13 @@ export default {
   display: flex;
   font-size: 0.8em;
   gap: 1.5rem;
-  resize: horizontal; 
-  overflow: auto; 
-  min-width: 8px;
-  padding: 16px 112px 16px 16px;
+  /* resize: horizontal; 
+  overflow: auto;  */
+  min-width: 229px;
+  padding: 16px 98px 16px 16px;
 }
 
-.activity-top{
+.activity-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -285,7 +410,7 @@ export default {
   transition: background 0.2s;
 }
 
-.orange{
+.orange {
   background: #fdc65e;
   box-shadow: 0px 0px 5px 2px #fdc65e91;
   border: 0;
@@ -309,14 +434,14 @@ export default {
 
 @media (max-width: 768px) {
   .activity-release {
-    resize: vertical; 
-    width: 100% !important; 
+    resize: vertical;
+    width: 100% !important;
     max-width: 100%;
     margin: 1rem 0;
   }
 
   .task-release {
-    resize: none; 
+    resize: none;
     width: 100% !important;
     max-width: 100%;
   }
@@ -328,10 +453,29 @@ export default {
   margin-right: 15px;
 }
 
+.delete-release-btn {
+  border: none;
+  background: #dad8d8;
+  color: #666;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  margin: 6px 0px 6px 10px;
+  transition: all 0.3s;
+  border-radius: 5px;
+  padding: 0 10px;
+  opacity: 0.1;
+}
+
+.delete-release-btn:hover {
+  color: white;
+  background: #f52812;
+  opacity: 1;
+}
+
 .release-board {
   display: flex;
   border-top: 0;
-  border-right: 0;
   border-left: 0;
   border-style: dotted;
   border-color: #3f3f3f;
@@ -365,9 +509,9 @@ export default {
   gap: 15px;
   padding: 0.5rem;
   cursor: move;
-  resize: horizontal;
   width: 200px;
-  overflow: auto;
+  /* resize: horizontal; */
+  /* overflow: auto; */
   background-color: #fcb839;
   box-shadow: -3px 4px 1px 0px rgba(34, 60, 80, 0.2);
 }
@@ -395,9 +539,15 @@ export default {
   width: 14px;
 }
 
-.todo { background: #008ffb }
-.progress { background: #00e396}
-.done { background: #feb019; }
+.todo {
+  background: #008ffb;
+}
+.progress {
+  background: #00e396;
+}
+.done {
+  background: #feb019;
+}
 
 .status-select {
   padding: 4px 8px;
@@ -427,7 +577,50 @@ export default {
 
 .status-select:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
 }
 
+.priority-button-wrapper {
+  position: relative;
+  display: inline-block;
+  padding: 4px 4px 0px 4px;
+}
+
+.priority-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.priority-menu {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  background: #fed995;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.priority-menu div {
+  padding: 3px;
+  cursor: pointer;
+}
+
+.priority-menu div:hover {
+  background: #f0f0f0;
+  border-radius: 6px;
+}
+.low {
+  fill: #008000b3;
+}
+
+.medium {
+  fill: orange;
+}
+
+.high {
+  fill: #ff0000b3;
+}
 </style>

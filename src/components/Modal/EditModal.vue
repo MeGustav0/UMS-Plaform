@@ -1,90 +1,143 @@
 <template>
-  <div class="modal-overlay">
-    <div class="edit-modal">
-      <h3>{{ title }}</h3>
+  <div class="modal-overlay" @keydown.esc="$emit('close')" tabindex="-1">
+    <div class="modal">
+
+      <h3>{{ local.id ? 'Редактировать' : 'Создать' }} {{ title }}</h3>
+
+      <!-- Название -->
+      <div class="form-group">
+        <label>Название</label>
+        <input v-model="local.title" required />
+      </div>
+
+      <!-- Статус -->
+      <div v-if="type === 'task'" class="form-group">
+        <label>Статус</label>
+        <select v-model="local.status">
+          <option value="todo">To Do</option>
+          <option value="progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Приоритет</label>
+        <select v-model="local.priority">
+          <option value="low">Низкий</option>
+          <option value="medium">Средний</option>
+          <option value="high">Высокий</option>
+        </select>
+      </div>
       
-      <form @submit.prevent="save">
-        <div class="form-group">
-          <label>Название:</label>
-          <input v-model="localData.title" required>
-        </div>
-  
-        <div class="form-group">
-            <label>Описание:</label>
-            <textarea v-model="localData.description" rows="3"></textarea>
-        </div>
-         <!-- Для активности -->
-        <div v-if="type === 'activity'">
-            <div class="form-group">
-            <label>Ответственный:</label>
-            <input v-model="localData.owner" placeholder="Введите имя">
-            </div>
-        </div>
-        <!-- Для задач -->
-        <div v-if="type === 'task'">
-          <div class="form-group">
-            <label>Статус:</label>
-            <select class="status-select" v-model="localData.status">
-              <option value="todo">To Do</option>
-              <option value="progress">In Progress</option>
-              <option value="done">Done</option>
-            </select>
-          </div>
-  
-            <div class="form-group">
-                <label>Исполнитель:</label>
-                <input v-model="localData.assignee" placeholder="Введите имя">
-            </div>
-        </div>
-  
-        <div class="form-group">
-          <label>Дата окончания:</label>
-          <input 
-            type="date" 
-            v-model="localData.endDate"
-            :min="localData.startDate"
-          >
-        </div>
-  
-        <div class="modal-actions">
-          <button type="button" @click="$emit('close')">Отмена</button>
-          <button type="submit">Сохранить</button>
-        </div>
-      </form>
+      <!-- Исполнитель / Ответственный -->
+      <div v-if="canChooseResponsible" class="form-group">
+        <label>{{ responsibleLabel }}</label>
+        <select v-model="responsibleField">
+          <option value="">—</option>
+          <option v-for="member in projectMembers" :key="member.userId" :value="member.userId">
+            {{ getUserName(member.userId) }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Дедлайн -->
+      <div class="form-group">
+        <label>Дедлайн</label>
+        <input type="date" v-model="local.endDate" />
+      </div>
+
+      <!-- Описание -->
+      <div class="form-group">
+        <label>Описание</label>
+        <textarea v-model="local.description" rows="4" />
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" @click="$emit('close')">Отмена</button>
+        <button type="submit" @click="save">Сохранить</button>
+      </div>
+
     </div>
   </div>
 </template>
-  
-  <script>
-  export default {
-    props: ['data', 'type', 'users'],
-    data() {
-      return {
-        localData: {...this.data}
+
+<script>
+export default {
+  props: {
+    data: { type: Object, required: true },
+    type: { type: String, required: true }, // 'activity' или 'task'
+    projectMembers: { type: Array, default: () => [] }
+  },
+
+  data() {
+    return {
+      local: this.prepareLocal(this.data)
+    };
+  },
+
+  watch: {
+    data: {
+      deep: true,
+      immediate: true,
+      handler(newData) {
+        this.local = this.prepareLocal(newData);
       }
+    }
+  },
+
+  computed: {
+    title() {
+      return { task: 'задачу', activity: 'активность' }[this.type] || '';
     },
-    computed: {
-      title() {
-        return this.type === 'activity' 
-          ? 'Редактирование активности' 
-          : 'Редактирование задачи'
-      }
+
+    canChooseResponsible() {
+      return this.type === 'task' || this.type === 'activity';
     },
-    methods: {
-      save() {
-        this.$emit('save', this.localData)
-        this.$emit('close')
+
+    responsibleLabel() {
+      return this.type === 'task' ? 'Исполнитель' : 'Ответственный';
+    },
+
+    responsibleField: {
+      get() {
+        return this.type === 'task' ? this.local.assignee : this.local.owner;
       },
-      validateDates() {
-        if (new Date(this.localData.endDate) < new Date(this.localData.startDate)) {
-        this.error = 'Дата окончания не может быть раньше начала'
-        return false
+      set(value) {
+        if (this.type === 'task') {
+          this.local.assignee = value;
+        } else if (this.type === 'activity') {
+          this.local.owner = value;
         }
-        return true
+      }
+    }
+  },
+
+  methods: {
+    prepareLocal(data) {
+      const copy = JSON.parse(JSON.stringify(data || {}));
+      if (this.type === 'task' && typeof copy.assignee === 'undefined') {
+        copy.assignee = '';
+      }
+      if (this.type === 'activity' && typeof copy.owner === 'undefined') {
+        copy.owner = '';
+      }
+      if (this.type === 'task' && typeof copy.status === 'undefined') {
+        copy.status = 'todo';
+      }
+      return copy;
     },
+
+    getUserName(userId) {
+      const user = this.$store.state.auth.users.find(u => u.id === userId);
+      return user?.name || '—';
+    },
+
+    save() {
+      this.$emit('save', { ...this.local });
     }
   }
-  </script>
+};
+</script>
 
 <style scoped>
 .modal-overlay {
@@ -100,7 +153,7 @@
   z-index: 100;
 }
 
-.edit-modal {
+.modal {
   background: #f8f7f7;
   border-radius: 12px;
   padding: 30px;
@@ -110,7 +163,7 @@
   box-shadow: 0px 7px 20px 0px rgba(34, 60, 80, 0.2);
 }
 
-.edit-modal h3 {
+.modal h3 {
   color: #2c3e50;
   margin: 0 0 25px 0;
   font-size: 1.4rem;
@@ -138,7 +191,9 @@ label {
   font-size: 1.1rem;
 }
 
-input, textarea {
+input,
+textarea,
+select {
   width: 100%;
   border: 0;
   display: flex;
@@ -183,9 +238,15 @@ input, textarea {
   background: #23ec77;
 }
 
-.todo { background: #008ffb }
-.progress { background: #00e396}
-.done { background: #feb019; }
+.todo {
+  background: #008ffb;
+}
+.progress {
+  background: #00e396;
+}
+.done {
+  background: #feb019;
+}
 
 .status-select {
   padding: 10px;
@@ -218,6 +279,6 @@ input, textarea {
 
 .status-select:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
 }
 </style>

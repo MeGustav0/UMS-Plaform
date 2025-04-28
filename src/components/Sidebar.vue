@@ -1,36 +1,32 @@
 <template>
   <div class="sidebar" v-if="project">
+    <div class="project-header">
+      <button v-if="isAdmin && project" @click="openEdit" class="edit-btn">
+        {{ project.name }}
+      </button>
 
-      <div class="project-header">
-      <button 
-      v-if="isAdmin && project"
-      @click="openEdit"
-      class="edit-btn"
-      >{{ project.name }}</button>
-      
-    <ProjectInfoModal
-      v-if="showProjectModal"
-      :project="project"
-      @close="showProjectModal = false"
-      @save="handleSave"
-    />
+      <ProjectInfoModal
+        v-if="showProjectModal"
+        :project="project"
+        @close="showProjectModal = false"
+        @save="handleSave"
+      />
     </div>
     <nav class="project-nav">
-      <button 
-        v-for="tab in tabs" 
+      <button
+        v-for="tab in tabs"
         :key="tab.id"
         :class="{ active: currentTab === tab.id }"
         @click="$emit('change-tab', tab.id)"
       >
-      {{ tab.label }}
-    </button>
+        {{ tab.label }}
+      </button>
     </nav>
   </div>
 </template>
 
 <script>
-import ProjectInfoModal from '@/components/Modal/ProjectInfoModal.vue'
-
+import ProjectInfoModal from "@/components/Modal/ProjectInfoModal.vue";
 
 export default {
   components: { ProjectInfoModal },
@@ -38,60 +34,60 @@ export default {
     project: {
       type: Object,
       required: true,
-      validator: (p) => p.id && p.orgId // Проверка обязательных полей
+      validator: (p) => p && typeof p === "object",
     },
     currentTab: {
       type: String,
-      required: true
+      required: true,
     },
   },
   data() {
     return {
       showProjectModal: false,
       tabs: [
-        { id: 'usm', label: 'USM Доска' },
-        { id: 'tasks', label: 'Все задачи' },
-        { id: 'stats', label: 'Статистика' }
-      ]
-    }
+        { id: "usm", label: "USM Доска" },
+        { id: "tasks", label: "Все задачи" },
+        { id: "stats", label: "Статистика" },
+      ],
+    };
   },
   computed: {
     isAdmin() {
-    // геттер для проверки роли в организации
-    return this.$store.getters['organizations/getUserRole'](
-      this.project.orgId,
-      this.$store.state.auth.user?.id
-    ) === 'admin';
-  }
+      if (!this.project || !this.project.members) return false;
+      const userId = this.$store.state.auth.user?.id;
+      const member = this.project.members.find((m) => m.userId == userId);
+      return member?.role === "admin";
+    },
   },
   methods: {
     formatDate(dateString) {
-      if (!dateString) return 'Не установлен'
-      const date = new Date(dateString)
-      return isNaN(date) ? 'Неверная дата' : 
-        date.toLocaleDateString('ru-RU', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-      })
+      if (!dateString) return "Не установлен";
+      const date = new Date(dateString);
+      return isNaN(date)
+        ? "Неверная дата"
+        : date.toLocaleDateString("ru-RU", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          });
     },
     openEdit() {
-      console.log('Project data:', this.project);
+      console.log("Project data:", this.project);
       this.showProjectModal = true;
     },
     handleSave(updatedProject) {
-      this.$store.commit('projects/UPDATE_PROJECT', updatedProject)
-    }
-  }
-}
+      this.$store.commit("projects/UPDATE_PROJECT", updatedProject);
+    },
+  },
+};
 </script>
-  
+
 <style scoped>
 .sidebar {
   background: #424348;
   color: white;
   padding: 10px;
-  min-height: calc(100vh - 74px) ;
+  min-height: calc(100vh - 74px);
   max-width: 180px;
   min-width: 160px;
   position: fixed;
@@ -113,11 +109,14 @@ export default {
   font-size: 1.5em;
   padding: 5px;
   color: white;
-  max-width: 180px;
+  max-width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .edit-btn:hover {
-  color: #2196F3;
+  color: #2196f3;
 }
 
 .project-meta {
@@ -138,14 +137,14 @@ export default {
 .members {
   margin-top: 1.5rem;
   padding: 10px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
 
 .member {
   padding: 5px;
   margin: 3px 0;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 2px;
 }
 

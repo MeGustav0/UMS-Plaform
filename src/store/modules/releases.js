@@ -1,3 +1,5 @@
+import { generateId } from '@/utils/id';
+
 export default {
   namespaced: true,
   state: () => ({
@@ -75,6 +77,50 @@ export default {
         release.name = newName;
         localStorage.setItem("releases", JSON.stringify(state.releases));
       }
+    },
+    ADD_ACTIVITY_TO_RELEASES(state, { projectId, activity }) {
+      state.releases.forEach(release => {
+        if (release.projectId === projectId) {
+          release.activitiesSnapshot.push(JSON.parse(JSON.stringify(activity)));
+        }
+      });
+      localStorage.setItem('releases', JSON.stringify(state.releases));
+    },
+    ADD_TASK_TO_RELEASES(state, { projectId, activityId, task }) {
+      state.releases.forEach(release => {
+        if (release.projectId === projectId) {
+          const activity = release.activitiesSnapshot.find(a => a.id == activityId);
+          if (activity) {
+            activity.tasks.push(JSON.parse(JSON.stringify(task)));
+          }
+        }
+      });
+      localStorage.setItem('releases', JSON.stringify(state.releases));
+    },
+    DELETE_ACTIVITY_FROM_RELEASES(state, { projectId, activityId }) {
+      state.releases.forEach(release => {
+        if (release.projectId === projectId) {
+          release.activitiesSnapshot = release.activitiesSnapshot.filter(
+            activity => activity.id !== activityId
+          );
+        }
+      });
+      localStorage.setItem('releases', JSON.stringify(state.releases));
+    },
+    DELETE_TASK_FROM_RELEASES(state, { projectId, activityId, taskId }) {
+      state.releases.forEach(release => {
+        if (release.projectId === projectId) {
+          const activity = release.activitiesSnapshot.find(a => a.id == activityId);
+          if (activity) {
+            activity.tasks = activity.tasks.filter(task => task.id !== taskId);
+          }
+        }
+      });
+      localStorage.setItem('releases', JSON.stringify(state.releases));
+    },
+    DELETE_RELEASE(state, releaseId) {
+      state.releases = state.releases.filter(release => release.id !== releaseId);
+      localStorage.setItem('releases', JSON.stringify(state.releases));
     }
   },
   actions: {
@@ -83,7 +129,7 @@ export default {
       if (!project) return;
 
       commit("ADD_RELEASE", {
-        id: Date.now(),
+        id: generateId(),
         projectId: payload.projectId,
         name: payload.name || `Релиз ${new Date().toLocaleDateString()}`,
         activitiesSnapshot: JSON.parse(JSON.stringify(

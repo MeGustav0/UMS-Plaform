@@ -11,22 +11,14 @@
             placeholder="Введите название"
             :class="{ 'input-error': errors.name }"
             required
-          >
+          />
         </div>
 
         <!-- Выбор организации -->
         <div class="form-group">
           <label>Организация:</label>
-          <select 
-            v-model="selectedOrg" 
-            required
-            :disabled="!userOrgs.length"
-          >
-            <option 
-              v-for="org in userOrgs" 
-              :value="org.id"
-              :key="org.id"
-            >
+          <select v-model="selectedOrg" required :disabled="!userOrgs.length">
+            <option v-for="org in userOrgs" :value="org.id" :key="org.id">
               {{ org.name }}
             </option>
           </select>
@@ -39,20 +31,20 @@
         <div class="form-group">
           <label>Добавить участников:</label>
           <div class="members-list">
-            <div 
-              v-for="member in orgMembers" 
+            <div
+              v-for="member in orgMembers"
               :key="member.userId"
               class="member-item"
             >
               <label>
-                <input 
-                  type="checkbox" 
-                  :value="member.userId" 
+                <input
+                  type="checkbox"
+                  :value="member.userId"
                   v-model="selectedMembers"
-                >
+                />
                 {{ getUserName(member.userId) }}
               </label>
-              <select 
+              <select
                 v-model="memberRoles[member.userId]"
                 v-if="selectedMembers.includes(member.userId)"
               >
@@ -66,19 +58,11 @@
 
         <!-- Кнопки -->
         <div class="modal-actions">
-          <button 
-            type="button" 
-            class="cancel-btn"
-            @click="$emit('close')"
-          >
+          <button type="button" class="cancel-btn" @click="$emit('close')">
             Отмена
           </button>
-          <button 
-            type="submit" 
-            class="submit-btn"
-            :disabled="isSubmitting"
-          >
-            {{ isSubmitting ? 'Создание...' : 'Создать проект' }}
+          <button type="submit" class="submit-btn" :disabled="isSubmitting">
+            {{ isSubmitting ? "Создание..." : "Создать проект" }}
           </button>
         </div>
       </form>
@@ -87,81 +71,108 @@
 </template>
 
 <script>
+import { generateId } from "@/utils/id";
+
 export default {
   data() {
     return {
       form: {
-        name: '',
-        description: '',
-        deadline: ''
+        name: "",
+        description: "",
+        deadline: "",
       },
       selectedOrg: null,
       selectedMembers: [],
       memberRoles: {},
       errors: {},
-      isSubmitting: false
-    }
+      isSubmitting: false,
+    };
   },
   computed: {
     orgMembers() {
-      if (!this.selectedOrg) return []
-      const org = this.$store.state.organizations.organizations
-        .find(o => o.id === this.selectedOrg)
-      return org?.members || []
+      if (!this.selectedOrg) return [];
+      const org = this.$store.state.organizations.organizations.find(
+        (o) => o.id === this.selectedOrg
+      );
+      return org?.members || [];
     },
     userOrgs() {
-      return this.$store.getters['organizations/userOrganizations'] || []
+      return this.$store.getters["organizations/userOrganizations"] || [];
     },
   },
   methods: {
-
     getUserName(userId) {
-      const user = this.$store.state.auth.users.find(u => u.id === userId)
-      return user?.name || 'Неизвестный'
+      const user = this.$store.state.auth.users.find((u) => u.id === userId);
+      return user?.name || "Неизвестный";
     },
-    
+
     // Создание проекта
     async handleSubmit() {
-    try {
-      // Получаем ID создателя
-      const creatorId = this.$store.state.auth.user.id;
+      try {
+        // Получаем ID создателя
+        const creatorId = this.$store.state.auth.user.id;
+        this.$store.commit("organizations/ADD_MEMBER", {
+          orgId: this.selectedOrg,
+          userId: creatorId,
+          role: "admin",
+        });
+        // Формируем список участников
+        const members = this.selectedMembers.map((userId) => {
+          const user = this.$store.state.auth.users.find(
+            (u) => u.id === userId
+          );
 
-      // Формируем список участников
-      const members = this.selectedMembers.map(userId => ({
-        userId,
-        role: this.memberRoles[userId] || 'member' // Роль по умолчанию
-      }));
+          // Пытаемся найти роль пользователя в организации
+          const orgMember = this.$store.state.organizations.members.find(
+            (m) => m.orgId === this.selectedOrg && m.userId === userId
+          );
 
-      // Добавляем создателя, если его нет в списке
-      if (!members.some(m => m.userId === creatorId)) {
-        members.push({ userId: creatorId, role: 'admin' });
+          return {
+            userId: user.id,
+            name: user.name,
+            email: user.email,
+            role: orgMember?.role || this.memberRoles[userId] || "member", 
+          };
+        });
+
+        // Добавляем создателя, если его нет в списке
+        if (!members.some(m => m.userId === creatorId)) {
+          const creator = this.$store.state.auth.user;
+          const orgMember = this.$store.state.organizations.members.find(
+            m => m.orgId === this.selectedOrg && m.userId === creatorId
+          );
+
+          members.push({
+            userId: creator.id,
+            name: creator.name,
+            email: creator.email,
+            role: orgMember?.role || 'admin'
+          });
+        }
+
+        // Создаем проект
+        const project = {
+          id: generateId(),
+          name: this.form.name,
+          description: this.form.description,
+          deadline: this.form.deadline,
+          orgId: this.selectedOrg,
+          creatorId,
+          members,
+          activities: [],
+        };
+
+        // Сохраняем в хранилище
+        this.$store.commit("projects/ADD_PROJECT", project);
+        this.$emit("close");
+      } catch (error) {
+        console.error("Ошибка:", error);
+        alert("Не удалось создать проект");
       }
-
-      // Создаем проект
-      const project = {
-        id: Date.now(),
-        name: this.form.name,
-        description: this.form.description,
-        deadline: this.form.deadline,
-        orgId: this.selectedOrg,
-        creatorId,
-        members,
-        activities: []
-      };
-
-      // Сохраняем в хранилище
-      this.$store.commit('projects/ADD_PROJECT', project);
-      this.$emit('close');
-      
-    } catch (error) {
-      console.error('Ошибка:', error);
-      alert('Не удалось создать проект');
-    }
-  }
-  }
-}
+    },
+  },
+};
 </script>
-
 
 <style scoped>
 .modal-overlay {
@@ -189,6 +200,12 @@ export default {
   box-shadow: 0px 7px 20px 0px rgba(34, 60, 80, 0.2);
 }
 
+.members-list{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 h2 {
   color: #2c3e50;
   margin-bottom: 25px;
@@ -210,15 +227,17 @@ label {
   font-size: 1.1rem;
 }
 
-input, textarea {
-  width: 100%;
+input,
+textarea,
+select {
+  width: 50%;
   border: 0;
   display: flex;
   align-items: center;
   padding: 10px;
   background: #fff;
   border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 textarea {

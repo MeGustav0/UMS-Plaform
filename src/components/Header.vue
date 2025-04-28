@@ -9,6 +9,7 @@
     <div class="projects-section">
       <router-link 
         class="project-tab hover"
+         :class="{ active: isActive(project.id) }"
         v-for="project in userProjects"
         :key="project.id"
         :to="`/project/${project.id}`"
@@ -136,7 +137,14 @@ export default {
   padding: 9.5px 16px;
   cursor: pointer;
   border-radius: 4px;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
+  text-decoration: none;   /* убираем подчёркивание */
+  color: black;            /* начальный цвет текста */
+  font-weight: 500;        /* чуть жирнее для кнопочного вида */
+  background: transparent; /* начальный фон прозрачный */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hover:hover {
@@ -146,6 +154,7 @@ export default {
 .project-tab.active {
   background: #3498db;
   color: white;
+  text-decoration: none;  /* подчёркивание тоже убираем у активных */
 }
 
 .new-project-btn {

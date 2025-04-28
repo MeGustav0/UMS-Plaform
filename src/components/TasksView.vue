@@ -17,7 +17,7 @@
       <label>Пользователь:
         <select v-model="selectedUserId">
           <option value="all">Все</option>
-          <option v-for="member in projectMembers" :key="member.id" :value="member.id">
+          <option v-for="member in projectMembers" :key="member.userId" :value="member.userId">
             {{ member.name }}
           </option>
         </select>
@@ -31,7 +31,14 @@
           <option value="done">Done</option>
         </select>
       </label>
-
+      <label>Приоритет:
+        <select v-model="selectedPriority">
+          <option value="all">Все</option>
+          <option value="high">Высокий</option>
+          <option value="medium">Средний</option>
+          <option value="low">Низкий</option>
+        </select>
+      </label>
       <label>Дедлайн до:
         <input type="date" v-model="selectedDeadline">
       </label>
@@ -54,13 +61,14 @@
             <div class="story-header">
               <strong>{{ story.title }}</strong>
               <span class="status" :class="story.status">{{ story.status }}</span>
+              <span class="priority" v-html="priorityIcon(story.priority)"></span>
             </div>
             <div class="story-meta">
               <span>Исполнитель: {{ getUserName(story.assignee) }}</span>
               <span>Создано: {{ formatDate(story.createdAt) }}</span>
               <span v-if="story.endDate">Дедлайн: {{ formatDate(story.endDate) }}</span>
             </div>
-            <div v-if="story.description" class="story-description">
+            <div class="story-description" v-if="story.description">
               {{ story.description }}
             </div>
           </div>
@@ -84,6 +92,7 @@
 <script>
 import TaskItem from '@/components/TaskItem.vue'
 import EditStoryModal from '@/components/Modal/EditStoryModal.vue'
+import { generateId } from '@/utils/id';
 
 export default {
   name: 'TasksView',
@@ -96,7 +105,7 @@ export default {
       editingReleaseId: null,
       editingTaskPath: null,
       selectedReleaseId: null,
-
+      selectedPriority: 'all',
       selectedUserId: 'all',
       selectedStatus: 'all',
       selectedDeadline: ''
@@ -130,7 +139,8 @@ export default {
         const userOk = this.selectedUserId === 'all' || task.assignee === this.selectedUserId;
         const statusOk = this.selectedStatus === 'all' || task.status === this.selectedStatus;
         const deadlineOk = !this.selectedDeadline || (task.endDate && task.endDate <= this.selectedDeadline);
-        return userOk && statusOk && deadlineOk;
+        const priorityOk = this.selectedPriority === 'all' || task.priority === this.selectedPriority;
+        return userOk && statusOk && deadlineOk && priorityOk;
       });
     },
     // Фильтрация историй
@@ -139,11 +149,12 @@ export default {
         const userOk = this.selectedUserId === 'all' || story.assignee === this.selectedUserId;
         const statusOk = this.selectedStatus === 'all' || story.status === this.selectedStatus;
         const deadlineOk = !this.selectedDeadline || (story.endDate && story.endDate <= this.selectedDeadline);
-        return userOk && statusOk && deadlineOk;
+        const priorityOk = this.selectedPriority === 'all' || story.priority === this.selectedPriority;
+        return userOk && statusOk && deadlineOk && priorityOk;
       });
     },
     formatDate(date) {
-      return date ? new Date(date).toLocaleDateString('ru-RU') : 'Не указано'
+      return date ? new Date(date).toLocaleDateString('ru-RU') : '—'
     },
     getUserName(userId) {
       const user = this.$store.state.auth.users.find(u => u.id === userId)
@@ -170,7 +181,7 @@ export default {
           story: updatedStory
         })
       } else {
-        updatedStory.id = Date.now()
+        updatedStory.id = generateId()
         this.$store.commit('releases/ADD_STORY', {
           releaseId: this.editingReleaseId,
           taskPath: this.editingTaskPath,
@@ -178,7 +189,28 @@ export default {
         })
       }
       this.closeStoryModal()
-    }
+    },
+    priorityIcon(priority) {
+      const size = 16;
+      const color = { low: "green", medium: "orange", high: "red" }[priority] || "gray";
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="${color}" />
+        </svg>
+      `;
+    },
+getFilteredStories(activityId, taskId) {
+  const priorityOrder = { high: 1, medium: 2, low: 3 };
+
+  return [...this.getStories(activityId, taskId)]
+    .filter(story => {
+      const userOk = this.selectedUserId === 'all' || story.assignee === this.selectedUserId;
+      const statusOk = this.selectedStatus === 'all' || story.status === this.selectedStatus;
+      const deadlineOk = !this.selectedDeadline || (story.endDate && story.endDate <= this.selectedDeadline);
+      return userOk && statusOk && deadlineOk;
+    })
+    .sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
+},
   },
   mounted() {
     if (this.projectReleases.length) {
