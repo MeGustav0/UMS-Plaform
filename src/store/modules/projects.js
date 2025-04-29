@@ -131,6 +131,15 @@ export default {
     DELETE_PROJECT(state, projectId) {
       state.projects = state.projects.filter(p => p.id !== projectId);
     },
+    UPDATE_MEMBER_ROLE(state, { projectId, userId, role }) {
+      const project = state.projects.find(p => p.id === projectId);
+      if (!project || !project.members) return;
+    
+      const member = project.members.find(m => m.userId === userId);
+      if (member) {
+        member.role = role;
+      }
+    }
   },
   getters: {
     getProjectById: (state) => (id) => 

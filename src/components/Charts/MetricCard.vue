@@ -27,10 +27,11 @@ export default {
 
 <style scoped>
 .metric-card {
-  border: 1px solid #ddd;
-  padding: 1em;
-  border-radius: 4px;
+  background: #ffffff;
+  padding: 8px 0;
   text-align: center;
+  box-shadow: -3px 3px 2px 0px rgba(34, 60, 80, 0.1);
+  border-radius: 10px;
 }
 .icon { font-size: 2em; }
 .title { margin: 0.5em 0 0.2em; }

@@ -20,7 +20,7 @@
         </select>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" v-if="type === 'task'">
         <label>Приоритет</label>
         <select v-model="local.priority">
           <option value="low">Низкий</option>
@@ -39,7 +39,7 @@
           </option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group" v-if="type === 'task'">
         <label>Дата закрытия</label>
         <input type="text" :value="formatDate(local.closedAt)" disabled />
       </div>

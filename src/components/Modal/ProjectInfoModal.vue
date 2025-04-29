@@ -76,14 +76,33 @@
                 </div>
               </div>
               <div class="role-actions">
-                <span class="role-badge">{{ member.role }}</span>
-                <button
-                  v-if="canEdit"
-                  @click="removeMember(member.userId)"
-                  class="remove-btn"
+                <div
+                  class="role-button-wrapper"
+                  @click.stop="toggleRoleMenu(member)"
                 >
-                  ×
-                </button>
+                  <span :class="['role-badge', roleBadgeClass(member.role)]">
+                    {{ roleLabel(member.role) }}
+                  </span>
+
+                  <div v-if="member.showRoleMenu" class="role-menu">
+                    <div @click="changeProjectMemberRole(member, 'admin')">
+                      <span>Админ</span>
+                    </div>
+                    <div @click="changeProjectMemberRole(member, 'manager')">
+                      <span>Менеджер</span>
+                    </div>
+                    <div @click="changeProjectMemberRole(member, 'member')">
+                      <span>Исполнитель</span>
+                    </div>
+                  </div>
+                  <button
+                    v-if="canEdit"
+                    @click="removeMember(member.userId)"
+                    class="remove-btn"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -227,6 +246,36 @@ export default {
 
       return false;
     },
+    toggleRoleMenu(member) {
+      member.showRoleMenu = !member.showRoleMenu;
+    },
+    changeProjectMemberRole(member, newRole) {
+      member.role = newRole;
+      member.showRoleMenu = false;
+      this.$store.commit("projects/UPDATE_MEMBER_ROLE", {
+        projectId: this.project.id,
+        userId: member.userId,
+        role: newRole,
+      });
+    },
+    roleBadgeClass(role) {
+      return (
+        {
+          admin: "badge-admin",
+          manager: "badge-manager",
+          member: "badge-member",
+        }[role] || ""
+      );
+    },
+    roleLabel(role) {
+      return (
+        {
+          admin: "Админ",
+          manager: "Менеджер",
+          member: "Исполнитель",
+        }[role] || "Неизвестно"
+      );
+    },
   },
 };
 </script>
@@ -250,7 +299,7 @@ export default {
   border-radius: 12px;
   padding: 30px;
   margin-top: 10vh;
-  width: 40%;
+  width: 90%;
   max-width: 600px;
   box-shadow: 0px 7px 20px 0px rgba(34, 60, 80, 0.2);
   color: #2c3e50;
@@ -313,7 +362,6 @@ textarea {
   background: #f52812;
 }
 
-
 .access-warning {
   color: #e74c3c;
   padding: 15px;
@@ -361,7 +409,6 @@ textarea {
 .members-section {
   margin-top: 1.5rem;
   border-top: 1px solid #e2e8f0;
-  max-height: 400px;
   overflow-y: auto;
 }
 
@@ -402,7 +449,7 @@ select {
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-bottom: 0;
   border-right: 0;
-  border-top:0;
+  border-top: 0;
   background: white;
   font-size: 0.9rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -441,7 +488,7 @@ select {
 }
 
 .current-members {
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
 }
 
@@ -516,5 +563,56 @@ select {
     align-items: flex-start;
     gap: 0.5rem;
   }
+}
+.role-button-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.role-menu {
+  position: absolute;
+  top: 120%;
+  left: -13px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 120px;
+  text-align: center;
+}
+
+.role-menu div {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.role-menu div:hover {
+  background: #f0f0f0;
+}
+.role-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  min-width: 73px;
+  display: inline-block;
+  transition: background-color 0.3s, color 0.3s;
+}
+.badge-admin {
+  background-color: #3498db;
+  color: white;
+}
+
+.badge-manager {
+  background-color: #f39c12;
+  color: white;
+}
+
+.badge-member {
+  background-color: #7f8c8d;
+  color: white;
 }
 </style>

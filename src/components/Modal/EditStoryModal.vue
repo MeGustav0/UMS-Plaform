@@ -1,8 +1,8 @@
 <template>
-  <div class="modal-overlay">
+  <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
       <h3 style="margin-top: 0">
-        {{ story.id ? "Редактировать историю" : "Новая история" }}
+        {{ localStory.id ? "Редактировать историю" : "Новая история" }}
       </h3>
       <form @submit.prevent="saveStory">
         <div class="form-group">
@@ -29,7 +29,7 @@
         </div>
 
         <div class="form-group">
-          <label>Исполнитель:</label>
+          <label>Исполнитель</label>
           <select v-model="localStory.assignee">
             <option disabled value="">-- выберите --</option>
             <option
@@ -47,48 +47,70 @@
           <textarea v-model="localStory.description" rows="3" />
         </div>
         <div class="form-group">
+          <label>Дата создания</label>
+          <input
+            type="text"
+            :value="formatFullDate(localStory.createdAt)"
+            disabled
+          />
+          <!-- type="datetime-local" -->
+        </div>
+        <div class="form-group">
           <label>Дата закрытия</label>
           <input
             type="text"
-            :value="formatDate(localStory.closedAt)"
+            :value="formatFullDate(localStory.closedAt)"
             disabled
           />
+          <!-- type="datetime-local" -->
         </div>
+
         <div class="form-group">
           <label>Дедлайн</label>
           <input type="date" v-model="localStory.endDate" />
         </div>
+
+        <!-- Комментарии -->
         <div class="comments-section">
           <h4>Комментарии</h4>
 
           <QuillEditor
-            v-model="newComment"
-            :options="editorOptions"
-            style="height: 150px"
+            v-model:content="commentContent"
+            :contentType="'html'"
+            :theme="'snow'"
+            style="height: 100px"
           />
 
           <div class="file-upload">
             <input type="file" @change="handleFileUpload" />
           </div>
 
-          <button @click="addComment" class="add-comment-btn">
+          <button type="button" @click="addComment" class="add-comment-btn">
             Добавить комментарий
           </button>
 
-          <div
-            class="comment-item"
-            v-for="comment in localStory.comments"
-            :key="comment.id"
-          >
-            <div v-html="comment.content" class="comment-content"></div>
-            <div v-if="comment.files.length">
-              <div v-for="file in comment.files" :key="file.name">
-                <a :href="file.url" target="_blank">{{ file.name }}</a>
+          <div style="max-height: 600px; overflow-y: auto">
+            <div
+              class="comment-item"
+              v-for="comment in localStory.comments"
+              :key="comment.id"
+            >
+              <div class="comment-meta">
+                <span class="comment">{{ getUserName(comment.userId) }}</span>
+                <span class="comment">{{
+                  formatFullDate(comment.createdAt)
+                }}</span>
+              </div>
+              <div v-html="comment.content" class="comment-content"></div>
+              <div v-if="comment.files.length">
+                <div v-for="file in comment.files" :key="file.name">
+                  <a :href="file.url" target="_blank">{{ file.name }}</a>
+                </div>
               </div>
             </div>
-            <div class="comment-date">{{ formatDate(comment.createdAt) }}</div>
           </div>
         </div>
+
         <div class="modal-actions">
           <button type="button" @click="$emit('close')">Отмена</button>
           <button type="submit">Сохранить</button>
@@ -99,24 +121,22 @@
 </template>
 
 <script>
-import { QuillEditor } from 'vue3-quill';
-import { generateId } from '@/utils/id'; 
+import { QuillEditor } from "@vueup/vue-quill";
+import "@vueup/vue-quill/dist/vue-quill.snow.css";
+import { generateId } from "@/utils/id";
 
 export default {
+  name: "EditStoryModal",
   components: { QuillEditor },
   props: ["story", "projectMembers"],
   data() {
     return {
-      localStory: { ...this.story },
-      newComment: '',
+      commentContent: "", // отдельная переменная для комментариев
       newFiles: [],
-      editorOptions: {
-        toolbar: [
-          ['bold', 'italic', 'underline'],
-          [{ list: 'ordered' }, { list: 'bullet' }],
-          ['link']
-        ]
-      }
+      localStory: {
+        ...this.story,
+        comments: this.story.comments ? [...this.story.comments] : [],
+      },
     };
   },
   methods: {
@@ -131,19 +151,37 @@ export default {
     formatDate(date) {
       return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
     },
+    formatFullDate(date) {
+      if (!date) return "—";
+      const d = new Date(date);
+      const pad = (n) => String(n).padStart(2, "0");
+
+      return (
+        `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ` +
+        `${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`
+      );
+    },
     addComment() {
-      if (!this.localStory.comments) {
-        this.localStory.comments = [];
+      console.log("Что приходит из редактора:", this.commentContent);
+      const cleanText = this.stripHtml(this.commentContent).trim();
+      if (!cleanText) {
+        alert("Комментарий не может быть пустым!");
+        return;
       }
       this.localStory.comments.push({
         id: generateId(),
-        content: this.newComment,
+        content: this.commentContent,
         createdAt: new Date().toISOString(),
-        files: [...this.newFiles]
+        files: [...this.newFiles],
+        userId: this.$store.state.auth.user?.id,
       });
-
-      this.newComment = '';
+      this.commentContent = ""; // очищаем поле
       this.newFiles = [];
+    },
+    stripHtml(html) {
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      return div.textContent || div.innerText || "";
     },
     handleFileUpload(event) {
       const file = event.target.files[0];
@@ -153,7 +191,7 @@ export default {
       reader.onload = (e) => {
         this.newFiles.push({
           name: file.name,
-          url: e.target.result
+          url: e.target.result,
         });
       };
       reader.readAsDataURL(file);
@@ -166,25 +204,23 @@ export default {
 .modal-overlay {
   position: fixed;
   top: 0;
-  left: 0;
   right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  z-index: 100;
+  width: 100%;
+  height: 100vh;
+  /* background: rgba(0, 0, 0, 0.4); */
+  z-index: 1000;
 }
 
 .modal {
-  background: #f8f7f7;
-  border-radius: 12px;
-  padding: 30px;
-  margin-top: 10vh;
-  width: 30%;
-  max-width: 600px;
-  box-shadow: 0px 7px 20px 0px rgba(34, 60, 80, 0.2);
-  color: #2c3e50;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 96vh;
+  background: #fff;
+  padding: 20px;
+  overflow-y: auto;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .form-group {
@@ -223,7 +259,7 @@ select {
 }
 
 textarea {
-  height: 80px;
+  height: 50px;
   resize: vertical;
 }
 
@@ -304,6 +340,7 @@ textarea {
 
 .comments-section {
   margin-top: 20px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .add-comment-btn {
@@ -328,11 +365,18 @@ textarea {
 }
 
 .comment-content {
-  margin-bottom: 8px;
+  margin-top: 5px;
 }
 
-.comment-date {
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.comment {
   font-size: 12px;
   color: #888;
 }
+
 </style>

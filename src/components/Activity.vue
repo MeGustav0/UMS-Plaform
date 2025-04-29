@@ -4,7 +4,7 @@
       <div class="activity-top">
         <div
           class="description pink"
-          style="margin: 0px; border-radius: 6px; padding: 4px 8px"
+          style="margin: 0px; border-radius: 6px; padding: 4px 8px; font-size: 1.17em; font-weight: 600;"
         >
           {{ activity.title }}
         </div>
@@ -287,7 +287,7 @@ export default {
   padding: 16px 16px 16px 16px;
   /* resize: horizontal;
   overflow: auto;  */
-  color: #3f3f3f;
+  /* color: #3f3f3f; */
   font-size: 0.8em;
 }
 

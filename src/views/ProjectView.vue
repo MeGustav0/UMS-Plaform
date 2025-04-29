@@ -88,7 +88,7 @@ import Header from "@/components/Header.vue";
 import Sidebar from "@/components/Sidebar.vue";
 import TaskItem from "@/components/TaskItem.vue";
 import TasksView from "@/components/TasksView.vue";
-import StatsView from "@/components/StatsView.vue";
+import StatsView from "@/components/Charts/StatsView.vue";
 import Activity from "@/components/Activity.vue";
 import EditModal from "@/components/Modal/EditModal.vue";
 import EditStoryModal from "@/components/Modal/EditStoryModal.vue";
@@ -114,6 +114,7 @@ export default {
       editingType: null,
       editingItem: null,
       showStoryModal: false,
+      showFlowChart: false,
       newStoryReleaseId: null,
       newStoryTaskPath: null,
       isRightMouseDown: false,
@@ -312,11 +313,17 @@ export default {
     },
   },
   mounted() {
-    this.$refs.scrollContainer.addEventListener('contextmenu', this.onContextMenu);
+    this.$refs.scrollContainer.addEventListener(
+      "contextmenu",
+      this.onContextMenu
+    );
   },
   beforeUnmount() {
-    this.$refs.scrollContainer.removeEventListener('contextmenu', this.onContextMenu);
-  }
+    this.$refs.scrollContainer.removeEventListener(
+      "contextmenu",
+      this.onContextMenu
+    );
+  },
 };
 </script>
 

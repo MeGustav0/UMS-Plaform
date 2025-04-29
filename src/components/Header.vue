@@ -137,11 +137,12 @@ export default {
   padding: 9.5px 16px;
   cursor: pointer;
   border-radius: 4px;
+  background: #f0f0f0;
   transition: background 0.2s, color 0.2s;
-  text-decoration: none;   /* убираем подчёркивание */
-  color: black;            /* начальный цвет текста */
-  font-weight: 500;        /* чуть жирнее для кнопочного вида */
-  background: transparent; /* начальный фон прозрачный */
+  text-decoration: none;   
+  color: #2c3e50;            
+  font-weight: 500;        
+  background: transparent; 
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -154,7 +155,7 @@ export default {
 .project-tab.active {
   background: #3498db;
   color: white;
-  text-decoration: none;  /* подчёркивание тоже убираем у активных */
+  text-decoration: none;  
 }
 
 .new-project-btn {

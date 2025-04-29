@@ -21,6 +21,9 @@
       >
         {{ tab.label }}
       </button>
+      <!-- <button @click="$emit('toggle-flow-chart')">
+        Показать диаграмму потока
+      </button> -->
     </nav>
   </div>
 </template>
@@ -44,6 +47,7 @@ export default {
   data() {
     return {
       showProjectModal: false,
+      showFlowChart: false,
       tabs: [
         { id: "usm", label: "USM Доска" },
         { id: "tasks", label: "Все задачи" },

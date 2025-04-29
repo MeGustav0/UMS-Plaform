@@ -2,35 +2,26 @@
   <div class="stats-view">
     <!-- Фильтры -->
     <div class="filters">
-      <label
-        >Релиз:
-        <select v-model="selectedRelease">
-          <option value="all">Все релизы</option>
-          <option v-for="r in releases" :key="r.id" :value="r.id">
-            {{ r.name }}
-          </option>
-        </select>
-      </label>
+      <select v-model="selectedRelease">
+        <option value="all">Все релизы</option>
+        <option v-for="r in releases" :key="r.id" :value="r.id">
+          {{ r.name }}
+        </option>
+      </select>
 
-      <label
-        >Активность:
-        <select v-model="selectedActivity">
-          <option value="all">Все активности</option>
-          <option v-for="a in filteredActivities" :key="a.id" :value="a.id">
-            {{ a.title }}
-          </option>
-        </select>
-      </label>
+      <select v-model="selectedActivity">
+        <option value="all">Все активности</option>
+        <option v-for="a in filteredActivities" :key="a.id" :value="a.id">
+          {{ a.title }}
+        </option>
+      </select>
 
-      <label
-        >Задача:
-        <select v-model="selectedTask">
-          <option value="all">Все задачи</option>
-          <option v-for="t in filteredTasks" :key="t.id" :value="t.id">
-            {{ t.title }}
-          </option>
-        </select>
-      </label>
+      <select v-model="selectedTask">
+        <option value="all">Все задачи</option>
+        <option v-for="t in filteredTasks" :key="t.id" :value="t.id">
+          {{ t.title }}
+        </option>
+      </select>
     </div>
 
     <!-- Метрики -->
@@ -64,7 +55,7 @@
     </div>
 
     <!-- Графики -->
-    <div class="chart-container">
+    <div class="charts-row">
       <PieChart
         v-if="showTasksChart"
         :data="tasksStatusDistribution"
@@ -76,16 +67,20 @@
         title="Распределение историй"
       />
     </div>
+    <div class="flow-chart-container">
+      <CumulativeFlowChart :stories="filteredStories" />
+    </div>
   </div>
 </template>
 
 <script>
-import MetricCard from "@/components/MetricCard.vue";
-import PieChart from "@/components/PieChart.vue";
+import MetricCard from "@/components/Charts/MetricCard.vue";
+import PieChart from "@/components/Charts/PieChart.vue";
+import CumulativeFlowChart from "@/components/Charts/CumulativeFlowChart.vue";
 
 export default {
   name: "StatsView",
-  components: { MetricCard, PieChart },
+  components: { MetricCard, PieChart, CumulativeFlowChart },
   props: {
     project: { type: Object, required: true },
     releases: { type: Array, required: true },
@@ -244,61 +239,66 @@ export default {
 </script>
 
 <style scoped>
-.filters {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-.metrics-grid {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-.chart-container {
+.stats-view {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
   align-items: center;
+  padding: 10px;
+  gap: 5px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.filters {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 900px;
+  margin-bottom: 10px;
+}
+
+select,
+input {
+  min-width: 130px;
+  width: 200px;
+  border: 0;
+  margin-top: 0;
+  display: flex;
+  padding: 10px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: -3px 3px 2px 0px rgba(34, 60, 80, 0.1);
+  margin-top: 5px;
+}
+
+.charts-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  background: #ffffff;
+  box-shadow: -3px 3px 2px 0px rgba(34, 60, 80, 0.1);
+  border-radius: 10px;
+  width: 100%;
+}
+
+.charts-row > * {
+  flex: 1 1 300px;
+  max-width: 400px;
+}
+
+.flow-chart-container {
+  width: 100%;
+  max-width: 1200px;
 }
 </style>
-
-<!-- <style scoped>
-.stats-view{
-  width: 50%;
-  margin-left: auto;
-  margin-right: auto;
-}
-.metrics-grid{
-  display: flex;
-  width: 100%;
-  justify-content: space-evenly
-}
-.filters {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.filter-group label {
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-select {
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-}
-
-.chart-container{
-  display: flex;
-  justify-content: space-evenly;
-  width: 100%;
-}
-</style> -->

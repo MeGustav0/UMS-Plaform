@@ -1,15 +1,16 @@
 <template>
   <div class="modal-overlay">
     <div class="modal">
-      <h2>Создать новый проект</h2>
-      <form @submit.prevent="handleSubmit">
+      <h2 style="margin-bottom: 20px;">Создать новый проект</h2>
+      <form @submit.prevent="handleSubmit"> 
         <!-- Название проекта -->
         <div class="form-group">
           <label>Название проекта:</label>
-          <input
+          <input 
             v-model="form.name"
             placeholder="Введите название"
             :class="{ 'input-error': errors.name }"
+            class="dady"
             required
           />
         </div>
@@ -17,7 +18,7 @@
         <!-- Выбор организации -->
         <div class="form-group">
           <label>Организация:</label>
-          <select v-model="selectedOrg" required :disabled="!userOrgs.length">
+          <select class="dady" v-model="selectedOrg" required :disabled="!userOrgs.length">
             <option v-for="org in userOrgs" :value="org.id" :key="org.id">
               {{ org.name }}
             </option>
@@ -28,30 +29,17 @@
         </div>
 
         <!-- Участники из организации -->
-        <div class="form-group">
-          <label>Добавить участников:</label>
+        <div class="group" v-if="orgMembers.length">
+          <label style="    margin-bottom: 10px;color: #2c3e50;font-weight: 600;">Участники</label>
           <div class="members-list">
             <div
               v-for="member in orgMembers"
               :key="member.userId"
-              class="member-item"
+              class="member-card"
+              :class="{ selected: selectedMembers.includes(member.userId) }"
+              @click="toggleMember(member.userId)"
             >
-              <label>
-                <input
-                  type="checkbox"
-                  :value="member.userId"
-                  v-model="selectedMembers"
-                />
-                {{ getUserName(member.userId) }}
-              </label>
-              <select
-                v-model="memberRoles[member.userId]"
-                v-if="selectedMembers.includes(member.userId)"
-              >
-                <option value="manager">Менеджер</option>
-                <option value="member">Исполнитель</option>
-                <option value="admin">Админ</option>
-              </select>
+              {{ getUserName(member.userId) }}
             </div>
           </div>
         </div>
@@ -83,7 +71,6 @@ export default {
       },
       selectedOrg: null,
       selectedMembers: [],
-      memberRoles: {},
       errors: {},
       isSubmitting: false,
     };
@@ -105,24 +92,28 @@ export default {
       const user = this.$store.state.auth.users.find((u) => u.id === userId);
       return user?.name || "Неизвестный";
     },
-
-    // Создание проекта
+    toggleMember(userId) {
+      const index = this.selectedMembers.indexOf(userId);
+      if (index === -1) {
+        this.selectedMembers.push(userId);
+      } else {
+        this.selectedMembers.splice(index, 1);
+      }
+    },
     async handleSubmit() {
       try {
-        // Получаем ID создателя
         const creatorId = this.$store.state.auth.user.id;
         this.$store.commit("organizations/ADD_MEMBER", {
           orgId: this.selectedOrg,
           userId: creatorId,
           role: "admin",
         });
-        // Формируем список участников
+
         const members = this.selectedMembers.map((userId) => {
           const user = this.$store.state.auth.users.find(
             (u) => u.id === userId
           );
 
-          // Пытаемся найти роль пользователя в организации
           const orgMember = this.$store.state.organizations.members.find(
             (m) => m.orgId === this.selectedOrg && m.userId === userId
           );
@@ -131,26 +122,24 @@ export default {
             userId: user.id,
             name: user.name,
             email: user.email,
-            role: orgMember?.role || this.memberRoles[userId] || "member", 
+            role: orgMember?.role || "member",
           };
         });
 
-        // Добавляем создателя, если его нет в списке
-        if (!members.some(m => m.userId === creatorId)) {
+        if (!members.some((m) => m.userId === creatorId)) {
           const creator = this.$store.state.auth.user;
           const orgMember = this.$store.state.organizations.members.find(
-            m => m.orgId === this.selectedOrg && m.userId === creatorId
+            (m) => m.orgId === this.selectedOrg && m.userId === creatorId
           );
 
           members.push({
             userId: creator.id,
             name: creator.name,
             email: creator.email,
-            role: orgMember?.role || 'admin'
+            role: orgMember?.role || "admin",
           });
         }
 
-        // Создаем проект
         const project = {
           id: generateId(),
           name: this.form.name,
@@ -162,7 +151,6 @@ export default {
           activities: [],
         };
 
-        // Сохраняем в хранилище
         this.$store.commit("projects/ADD_PROJECT", project);
         this.$emit("close");
       } catch (error) {
@@ -200,10 +188,29 @@ export default {
   box-shadow: 0px 7px 20px 0px rgba(34, 60, 80, 0.2);
 }
 
-.members-list{
+.group{
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.members-list {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.member-card {
+  padding: 8px 12px;
+  background: #e1e1e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+  position: relative;
+}
+
+.member-card.selected {
+  background: #3498db;
+  color: white;
 }
 
 h2 {
@@ -227,9 +234,7 @@ label {
   font-size: 1.1rem;
 }
 
-input,
-textarea,
-select {
+.dady {
   width: 50%;
   border: 0;
   display: flex;
@@ -279,6 +284,7 @@ textarea {
 .modal-actions button[type="submit"]:hover {
   background: #23ec77;
 }
+
 input:invalid {
   border-color: #e74c3c;
 }

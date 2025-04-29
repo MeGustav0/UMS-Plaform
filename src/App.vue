@@ -4,10 +4,7 @@
 
 
 <script>
-import { QuillEditor } from 'vue3-quill';
-
 export default {
-  components: {QuillEditor},
   created() {
     this.$store.dispatch('auth/checkAuth');
   }
@@ -42,6 +39,7 @@ export default {
 }
 #app {
   min-height: 98vh;
+  color: #2c3e50;
   /* word-break: break-word; */
   /* text-overflow: ellipsis;
   overflow: hidden; */
@@ -79,4 +77,8 @@ export default {
     opacity: 1;
   }
 }
+p {
+  margin: 0;
+}
+
 </style>

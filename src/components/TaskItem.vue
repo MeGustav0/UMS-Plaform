@@ -1,5 +1,5 @@
 <template>
-  <div class="task-item">
+  <div class="task-item" @click="openEdit">
     <div class="item" style="justify-content: space-between">
       <div class="task-header">
         <span>{{ task.title }}</span>
@@ -12,9 +12,6 @@
           <!-- <span>Начало: {{ formatDate(task.startDate) }}</span> -->
           <span  v-if="task.closedAt">Закрытие: {{ formatDate(task.closedAt) }}</span>
           <span>Дедлайн: {{ formatDate(task.endDate) }}</span>
-        </div>
-        <div>
-          <button @click="openEdit">✏️</button>
         </div>
       </div>
     </div>
@@ -75,6 +72,11 @@ export default {
   background: #fff;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.20);
+  transition: all ease 0.3s;
+}
+
+.task-item:hover{
+  background: #eeeeee;
 }
 
 .item{
