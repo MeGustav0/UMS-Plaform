@@ -91,15 +91,12 @@
             "
           >
             <div class="story-header">
-              <div class="story-header">
-                <span
-                  class="priority"
-                  v-html="priorityIcon(story.priority)"
-                ></span>
+              <div class="item">
+                <span class="priority" v-html="priorityIcon(story.priority)"></span>
                 <strong>{{ story.title }}</strong>
-                <span class="status" :class="story.status">{{
-                  story.status
-                }}</span>
+                <span class="status" :class="story.status">
+                  {{story.status }}
+                </span>
               </div>
               <div class="story-meta">
                 <span>Исполнитель: {{ getUserName(story.assignee) }}</span>
@@ -374,9 +371,15 @@ input {
 }
 .story-header {
   display: flex;
-  gap: 20px;
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.item{
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-right: 30px;
 }
 .story-meta span {
   display: inline-block;
@@ -387,6 +390,6 @@ input {
 .story-description {
   margin-top: 0.5rem;
   font-size: 0.875rem;
-  color: #2d3748;
+  color: #777777;
 }
 </style>

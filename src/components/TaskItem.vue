@@ -1,23 +1,21 @@
 <template>
   <div class="task-item" @click="openEdit">
-    <div class="item" style="justify-content: space-between">
-      <div class="task-header">
+    <div class="task-head">
+      <div class="item">
+        <span class="priority" v-html="priorityIcon(task.priority)"></span>
         <span>{{ task.title }}</span>
+        <span class="status" :class="task.status">{{ statusLabel }}</span>
       </div>
       <div class="item">
-        <div class="item">
-          <span class="priority" v-html="priorityIcon(task.priority)"></span>
-          <span class="status" :class="task.status">{{ statusLabel }}</span>
-          <span>Исполнитель: {{ getUserName(task.assignee) }}</span>
-          <!-- <span>Начало: {{ formatDate(task.startDate) }}</span> -->
-          <span  v-if="task.closedAt">Закрытие: {{ formatDate(task.closedAt) }}</span>
-          <span>Дедлайн: {{ formatDate(task.endDate) }}</span>
-        </div>
+        <span>Исполнитель: {{ getUserName(task.assignee) }}</span>
+        <!-- <span>Начало: {{ formatDate(task.startDate) }}</span> -->
+        <span v-if="task.closedAt">Закрытие: {{ formatDate(task.closedAt) }}</span>
+        <span>Дедлайн: {{ formatDate(task.endDate) }}</span>
       </div>
     </div>
     <div>
       <div class="task-description">
-        {{ task.description || 'Нет описания' }}
+        {{ task.description || "Нет описания" }}
       </div>
     </div>
   </div>
@@ -31,18 +29,19 @@ export default {
       return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
     },
     getUserName(userId) {
-      const user = this.$store.state.auth.users.find(u => u.id === userId);
+      const user = this.$store.state.auth.users.find((u) => u.id === userId);
       return user?.name || "Не назначен";
     },
     openEdit() {
       this.$emit("edit", {
         type: "task",
-        data: { ...this.task, activityId: this.activityId }
+        data: { ...this.task, activityId: this.activityId },
       });
     },
     priorityIcon(priority) {
       const size = 16;
-      const color = { low: "green", medium: "orange", high: "red" }[priority] || "gray";
+      const color =
+        { low: "green", medium: "orange", high: "red" }[priority] || "gray";
       return `
         <svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="10" fill="${color}" />
@@ -52,16 +51,18 @@ export default {
   },
   computed: {
     statusLabel() {
-      return {
-        todo: "To Do",
-        progress: "In Progress",
-        done: "Done"
-      }[this.task.status] || "Неизвестно";
-    }
-  }
+      return (
+        {
+          todo: "To Do",
+          progress: "In Progress",
+          done: "Done",
+        }[this.task.status] || "Неизвестно"
+      );
+    },
+  },
 };
 </script>
-  
+
 <style scoped>
 .task-item {
   display: flex;
@@ -71,18 +72,23 @@ export default {
   margin: 5px 0;
   background: #fff;
   border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.20);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: all ease 0.3s;
 }
 
-.task-item:hover{
+.task-item:hover {
   background: #eeeeee;
 }
 
-.item{
+.task-head{
   display: flex;
-  gap: 30px;
-  align-items:center;
+  justify-content:space-between;
+}
+
+.item {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
 }
 
 .task-description {
@@ -95,13 +101,13 @@ export default {
   border: none;
   padding: 5px;
 }
-  
+
 select {
   padding: 5px;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
-  
+
 .delete-btn {
   background: none;
   border: none;
@@ -110,7 +116,7 @@ select {
   font-size: 1.2rem;
   padding: 0 8px;
 }
-  
+
 .task-item.done {
   background: #f0fff0;
 }
@@ -120,7 +126,13 @@ select {
   font-size: 0.8em;
 }
 
-.todo { background: #008ffb }
-.progress { background: #00e396}
-.done { background: #feb019; }
-  </style>
+.todo {
+  background: #008ffb;
+}
+.progress {
+  background: #00e396;
+}
+.done {
+  background: #feb019;
+}
+</style>

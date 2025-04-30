@@ -1,8 +1,8 @@
 <template>
-  <div class="modal-overlay">
+  <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
       <h2 style="margin-bottom: 20px;">Создать новый проект</h2>
-      <form @submit.prevent="handleSubmit"> 
+      <form @submit.prevent="handleSubmit">
         <!-- Название проекта -->
         <div class="form-group">
           <label>Название проекта:</label>
@@ -30,7 +30,9 @@
 
         <!-- Участники из организации -->
         <div class="group" v-if="orgMembers.length">
-          <label style="    margin-bottom: 10px;color: #2c3e50;font-weight: 600;">Участники</label>
+          <label style="margin-bottom: 10px; color: #2c3e50; font-weight: 600;">
+            Участники
+          </label>
           <div class="members-list">
             <div
               v-for="member in orgMembers"
@@ -103,40 +105,45 @@ export default {
     async handleSubmit() {
       try {
         const creatorId = this.$store.state.auth.user.id;
+
+        // Добавляем создателя в организацию, если его там нет
         this.$store.commit("organizations/ADD_MEMBER", {
           orgId: this.selectedOrg,
           userId: creatorId,
           role: "admin",
         });
 
+        // Формируем список участников проекта
         const members = this.selectedMembers.map((userId) => {
-          const user = this.$store.state.auth.users.find(
-            (u) => u.id === userId
+          const user = this.$store.state.auth.users.find((u) => u.id === userId);
+          const org = this.$store.state.organizations.organizations.find(
+            (o) => o.id === this.selectedOrg
           );
-
-          const orgMember = this.$store.state.organizations.members.find(
-            (m) => m.orgId === this.selectedOrg && m.userId === userId
-          );
+          const role =
+            org?.members.find((m) => m.userId === userId)?.role || "member";
 
           return {
             userId: user.id,
             name: user.name,
             email: user.email,
-            role: orgMember?.role || "member",
+            role,
           };
         });
 
+        // Добавляем создателя, если его нет в списке
         if (!members.some((m) => m.userId === creatorId)) {
           const creator = this.$store.state.auth.user;
-          const orgMember = this.$store.state.organizations.members.find(
-            (m) => m.orgId === this.selectedOrg && m.userId === creatorId
+          const org = this.$store.state.organizations.organizations.find(
+            (o) => o.id === this.selectedOrg
           );
+          const role =
+            org?.members.find((m) => m.userId === creator.id)?.role || "admin";
 
           members.push({
             userId: creator.id,
             name: creator.name,
             email: creator.email,
-            role: orgMember?.role || "admin",
+            role,
           });
         }
 
@@ -154,7 +161,7 @@ export default {
         this.$store.commit("projects/ADD_PROJECT", project);
         this.$emit("close");
       } catch (error) {
-        console.error("Ошибка:", error);
+        console.error("Ошибка при создании проекта:", error);
         alert("Не удалось создать проект");
       }
     },

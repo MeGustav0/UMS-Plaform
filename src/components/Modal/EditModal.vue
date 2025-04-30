@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-overlay" @keydown.esc="$emit('close')" tabindex="-1">
+  <div class="modal-overlay" @click.self="$emit('close')" tabindex="-1">
     <div class="modal">
 
       <h3>{{ local.id ? 'Редактировать' : 'Создать' }} {{ title }}</h3>
