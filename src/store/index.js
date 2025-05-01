@@ -3,6 +3,7 @@ import auth from './modules/auth'
 import projects from './modules/projects'
 import organizations from './modules/organizations'
 import releases from './modules/releases'
+import users from './modules/users'
 
 export default createStore({
   state: {
@@ -22,6 +23,7 @@ export default createStore({
     organizations,
     projects,
     releases, 
+    users
   },
   plugins: [
     (store) => {

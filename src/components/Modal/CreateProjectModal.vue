@@ -1,12 +1,12 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
-      <h2 style="margin-bottom: 20px;">Создать новый проект</h2>
+      <h2 style="margin-bottom: 20px">Создать новый проект</h2>
       <form @submit.prevent="handleSubmit">
         <!-- Название проекта -->
         <div class="form-group">
           <label>Название проекта:</label>
-          <input 
+          <input
             v-model="form.name"
             placeholder="Введите название"
             :class="{ 'input-error': errors.name }"
@@ -18,7 +18,12 @@
         <!-- Выбор организации -->
         <div class="form-group">
           <label>Организация:</label>
-          <select class="dady" v-model="selectedOrg" required :disabled="!userOrgs.length">
+          <select
+            class="dady"
+            v-model="selectedOrg"
+            required
+            :disabled="!userOrgs.length"
+          >
             <option v-for="org in userOrgs" :value="org.id" :key="org.id">
               {{ org.name }}
             </option>
@@ -30,7 +35,7 @@
 
         <!-- Участники из организации -->
         <div class="group" v-if="orgMembers.length">
-          <label style="margin-bottom: 10px; color: #2c3e50; font-weight: 600;">
+          <label style="margin-bottom: 10px; color: #2c3e50; font-weight: 600">
             Участники
           </label>
           <div class="members-list">
@@ -91,8 +96,7 @@ export default {
   },
   methods: {
     getUserName(userId) {
-      const user = this.$store.state.auth.users.find((u) => u.id === userId);
-      return user?.name || "Неизвестный";
+      return this.$store.getters["users/getUserById"](userId)?.name || "Неизвестный";
     },
     toggleMember(userId) {
       const index = this.selectedMembers.indexOf(userId);
@@ -104,18 +108,12 @@ export default {
     },
     async handleSubmit() {
       try {
-        const creatorId = this.$store.state.auth.user.id;
+        this.isSubmitting = true;
+        const creator = this.$store.state.auth.user;
 
-        // Добавляем создателя в организацию, если его там нет
-        this.$store.commit("organizations/ADD_MEMBER", {
-          orgId: this.selectedOrg,
-          userId: creatorId,
-          role: "admin",
-        });
-
-        // Формируем список участников проекта
+        // Формируем список участников
         const members = this.selectedMembers.map((userId) => {
-          const user = this.$store.state.auth.users.find((u) => u.id === userId);
+          const user = this.$store.state.users.usersById[userId];
           const org = this.$store.state.organizations.organizations.find(
             (o) => o.id === this.selectedOrg
           );
@@ -130,9 +128,8 @@ export default {
           };
         });
 
-        // Добавляем создателя, если его нет в списке
-        if (!members.some((m) => m.userId === creatorId)) {
-          const creator = this.$store.state.auth.user;
+        // Добавляем создателя, если его нет
+        if (!members.some((m) => m.userId === creator.id)) {
           const org = this.$store.state.organizations.organizations.find(
             (o) => o.id === this.selectedOrg
           );
@@ -147,22 +144,20 @@ export default {
           });
         }
 
-        const project = {
-          id: generateId(),
+        // Отправляем проект через dispatch (в Firestore)
+        await this.$store.dispatch("projects/createProject", {
           name: this.form.name,
           description: this.form.description,
           deadline: this.form.deadline,
-          orgId: this.selectedOrg,
-          creatorId,
           members,
-          activities: [],
-        };
+        });
 
-        this.$store.commit("projects/ADD_PROJECT", project);
         this.$emit("close");
       } catch (error) {
         console.error("Ошибка при создании проекта:", error);
         alert("Не удалось создать проект");
+      } finally {
+        this.isSubmitting = false;
       }
     },
   },
@@ -195,7 +190,7 @@ export default {
   box-shadow: 0px 7px 20px 0px rgba(34, 60, 80, 0.2);
 }
 
-.group{
+.group {
   padding-top: 10px;
   border-top: 1px solid #e2e8f0;
 }

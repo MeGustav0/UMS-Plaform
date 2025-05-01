@@ -3,12 +3,12 @@
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
         <label>Email:</label>
-        <input v-model="email" type="email" required>
+        <input v-model="email" type="email" required />
       </div>
-      
+
       <div class="form-group">
         <label>Пароль:</label>
-        <input v-model="password" type="password" required>
+        <input v-model="password" type="password" required />
       </div>
 
       <div class="auth-links">
@@ -27,44 +27,28 @@
 
 <script>
 export default {
-  created() {
-    if (this.$store.state.auth.user) {
-      this.$router.push('/')
-    }
-  },
   data() {
     return {
-      email: 'admin@example.com',
-      password: 'admin123',
-      loading: false,
+      email: "",
+      password: "",
       error: null
-    }
+    };
   },
   methods: {
     async handleSubmit() {
-      // Проверка email в начале
-      if (!/^\S+@\S+\.\S+$/.test(this.email)) {
-        this.error = 'Некорректный email';
-        return;
-      }
-
-      this.loading = true;
       this.error = null;
-
       try {
-        await this.$store.dispatch('auth/login', {
+        await this.$store.dispatch("auth/login", {
           email: this.email,
           password: this.password
         });
-        this.$router.push('/'); 
+        this.$router.push("/");
       } catch (err) {
-        this.error = err.message;
-      } finally {
-        this.loading = false;
+        this.error = err.message || "Ошибка входа";
       }
     }
   }
-}
+};
 </script>
 
 <style scoped>

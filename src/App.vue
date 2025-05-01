@@ -5,9 +5,9 @@
 
 <script>
 export default {
-  created() {
-    this.$store.dispatch('auth/checkAuth');
-  }
+  // created() {
+  //   this.$store.dispatch("auth/loadFromStorage");
+  // }
 }
 </script>
 

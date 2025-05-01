@@ -165,7 +165,7 @@
                 class="add-story-btn"
                 @click="emitAddStory(release.id, [activity.id, task.id])"
               >
-                + История
+                +
               </button>
             </div>
           </div>
@@ -398,7 +398,7 @@ export default {
   /* resize: horizontal; 
   overflow: auto;  */
   min-width: 229px;
-  padding: 16px 98px 16px 16px;
+  padding: 16px 60px 16px 16px;
 }
 
 .activity-top {
@@ -496,10 +496,10 @@ export default {
 
 .add-story-btn {
   width: 216px;
-  min-height: 52px;
-  max-height: 134px;
+  min-height: 10px;
+  height: 20px;
   font-weight: 600;
-  padding: 0.5rem;
+  /* padding: 0.5rem; */
   border: 0;
   cursor: pointer;
   opacity: 0.05;

@@ -1,84 +1,63 @@
+import axios from "axios";
+
 export default {
   namespaced: true,
   state: () => ({
     organizations: [],
+    currentOrg: null,
   }),
 
   mutations: {
-    INIT_STATE(state) {
-      const savedOrgs = localStorage.getItem(ORGANIZATIONS_STORAGE_KEY);
-      state.organizations = savedOrgs ? JSON.parse(savedOrgs) : [];
+    SET_ORGANIZATIONS(state, orgs) {
+      state.organizations = orgs;
     },
 
-    ADD_ORGANIZATION(state, org) {
-      const updatedOrg = {
-        ...org,
-        members: [{ userId: org.creatorId, role: "admin" }],
-      };
-
-      state.organizations.push(updatedOrg);
-
-      this.commit("organizations/PERSIST_DATA");
-    },
-
-    ADD_MEMBER(state, payload) {
-      const org = state.organizations.find((o) => o.id === payload.orgId);
-      if (org && !org.members.some((m) => m.userId === payload.userId)) {
-        org.members.push({
-          userId: payload.userId,
-          role: payload.role,
-        });
-        this.commit("organizations/PERSIST_DATA");
-      }
-    },
-
-    REMOVE_MEMBER(state, { orgId, userId }) {
-      const org = state.organizations.find((o) => o.id === orgId);
-      if (org) {
-        org.members = org.members.filter((m) => m.userId !== userId);
-        this.commit("organizations/PERSIST_DATA");
-      }
-    },
-
-    UPDATE_MEMBER(state, { orgId, userId, role }) {
-      const org = state.organizations.find((o) => o.id === orgId);
-      if (org) {
-        const member = org.members.find((m) => m.userId === userId);
-        if (member) {
-          member.role = role;
-          this.commit("organizations/PERSIST_DATA");
-        }
-      }
-    },
-
-    UPDATE_ORGANIZATION(state, updatedOrg) {
-      const index = state.organizations.findIndex(
-        (o) => o.id === updatedOrg.id
-      );
-      if (index !== -1) {
-        state.organizations.splice(index, 1, updatedOrg);
-        this.commit("organizations/PERSIST_DATA");
-      }
-    },
-
-    DELETE_ORGANIZATION(state, orgId) {
-      state.organizations = state.organizations.filter(
-        (org) => org.id !== orgId
-      );
-      this.commit("organizations/PERSIST_DATA");
-    },
-
-    PERSIST_DATA(state) {
-      localStorage.setItem(
-        ORGANIZATIONS_STORAGE_KEY,
-        JSON.stringify(state.organizations)
-      );
-    },
+    SET_CURRENT_ORG(state, org) {
+      state.currentOrg = org;
+    }
   },
 
   actions: {
-    initState({ commit }) {
-      commit("INIT_STATE");
+    async fetchOrganizations({ commit, rootState }) {
+      const userId = rootState.auth.user?.id;
+    
+      if (!userId) {
+        console.warn("fetchOrganizations: userId undefined — пользователь не авторизован");
+        return;
+      }
+    
+      const { data } = await axios.get(`/api/organizations?memberId=${userId}`);
+      commit("SET_ORGANIZATIONS", data);
+      if (data.length > 0) {
+        commit("SET_CURRENT_ORG", data[0]);
+      }
+    },
+
+    async createOrganization({ dispatch, rootState }, name) {
+      const ownerId = rootState.auth.user?.id;
+      await axios.post("/api/organizations", { name, ownerId });
+      await dispatch("fetchOrganizations");
+      
+    },
+
+    async deleteOrganization({ dispatch }, orgId) {
+      await axios.delete(`/api/organizations/${orgId}`);
+      await dispatch("fetchOrganizations");
+    },
+
+    async addMember({ dispatch }, { orgId, email }) {
+      await axios.patch(`/api/organizations/${orgId}/add-member`, { email });
+      await dispatch("fetchOrganizations");
+    },
+
+    async updateMemberRole({ dispatch }, { orgId, userId, role }) {
+      await axios.patch(`/api/organizations/${orgId}/update-role`, { userId, role });
+      await dispatch("fetchOrganizations");
+    },
+
+    async removeMember({ dispatch }, { orgId, userId }) {
+      await axios.patch(`/api/organizations/${orgId}/remove-member`, { userId });
+      await dispatch("fetchOrganizations");
     },
   },
 
@@ -87,7 +66,6 @@ export default {
       const org = state.organizations.find((o) => o.id === orgId);
       return org?.members.find((m) => m.userId === userId)?.role;
     },
-
     userOrganizations: (state, getters, rootState) => {
       const userId = rootState.auth.user?.id;
       return state.organizations.filter((org) =>
@@ -96,5 +74,3 @@ export default {
     },
   },
 };
-
-export const ORGANIZATIONS_STORAGE_KEY = "organizations";

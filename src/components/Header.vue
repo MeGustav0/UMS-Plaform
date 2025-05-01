@@ -7,58 +7,45 @@
 
     <!-- Секция проектов -->
     <div class="projects-section">
-      <router-link 
+      <router-link
         class="project-tab hover"
-         :class="{ active: isActive(project.id) }"
+        :class="{ active: isActive(project.id) }"
         v-for="project in userProjects"
         :key="project.id"
         :to="`/project/${project.id}`"
       >
         {{ project.name }}
       </router-link>
-      <button 
-        class="new-project-btn hover" 
-        @click="showProjectModal = true"
-      >
+      <button class="new-project-btn hover" @click="showProjectModal = true">
         +
       </button>
     </div>
 
     <!-- Профиль -->
     <div class="profile-section">
-      <div 
-        class="profile-info hover" 
-        @click="toggleProfileMenu"
-      >
-      <span class="username">
-        {{ user.name }}
-        <span v-if="currentOrgRole">({{ currentOrgRole }})</span>
-      </span>
+      <div class="profile-info hover" @click="toggleProfileMenu">
+        <span class="username">
+          {{ user.name }}
+          <span v-if="currentOrgRole">({{ currentOrgRole }})</span>
+        </span>
       </div>
-      
-      <div 
-        v-if="showProfileMenu" 
-        class="profile-menu"
-      >
-        <div class="menu-item hover" @click="goToProfile">
-          👤 Профиль
-        </div>
-        <div class="menu-item logout hover" @click="logout">
-          🚪 Выйти
-        </div>
+
+      <div v-if="showProfileMenu" class="profile-menu">
+        <div class="menu-item hover" @click="goToProfile">👤 Профиль</div>
+        <div class="menu-item logout hover" @click="logout">🚪 Выйти</div>
       </div>
     </div>
   </header>
   <!-- Модальное окно -->
-  <CreateProjectModal 
-      v-if="showProjectModal"
-      @close="showProjectModal = false"
-      @created="handleProjectCreated"
-    />
+  <CreateProjectModal
+    v-if="showProjectModal"
+    @close="showProjectModal = false"
+    @created="handleProjectCreated"
+  />
 </template>
 
 <script>
-import CreateProjectModal from '@/components/Modal/CreateProjectModal.vue'
+import CreateProjectModal from "@/components/Modal/CreateProjectModal.vue";
 
 export default {
   components: { CreateProjectModal },
@@ -66,64 +53,69 @@ export default {
     return {
       showProfileMenu: false,
       showProjectModal: false,
-    }
+    };
   },
   computed: {
     projects() {
-      return this.$store.getters['projects/userProjects']
+      return this.$store.getters["projects/userProjects"];
     },
     user() {
-      return this.$store.state.auth.user || { name: 'Гость', role: 'Не авторизован' }
-    },
-    currentOrgRole() {
-      const currentProject = this.$store.getters['projects/userProjects']
-        .find(p => p.id === this.$route.params.id);
-      return this.$store.getters['organizations/getUserRole'](
-        currentProject?.orgId,
-        this.user.id
+      return (
+        this.$store.state.auth.user || { name: "Гость", role: "Не авторизован" }
       );
     },
+    currentOrgRole() {
+      const currentProject = this.userProjects.find(
+        (p) => p.id === this.$route.params.id
+      );
+      return currentProject
+        ? this.$store.getters["organizations/getUserRole"](
+            currentProject.orgId,
+            this.user.id
+          )
+        : null;
+    },
     userProjects() {
-      return this.$store.getters['projects/userProjects'];
-    }
+      return this.$store.getters["projects/userProjects"];
+    },
   },
   methods: {
     isActive(projectId) {
-      return this.$route.params.id === projectId.toString()
+      return this.$route.params.id === projectId.toString();
     },
     openProject(projectId) {
-      this.$router.push(`/project/${projectId}`)
+      this.$router.push(`/project/${projectId}`);
     },
     handleProjectCreated(newProject) {
-      console.log('Получен новый проект:', newProject);
-      this.$store.commit('projects/ADD_PROJECT', newProject);
+      console.log("Получен новый проект:", newProject);
+      this.$store.commit("projects/ADD_PROJECT", newProject);
       this.openProject(newProject.id);
       this.showProjectModal = false;
     },
     toggleProfileMenu() {
-      this.showProfileMenu = !this.showProfileMenu
+      this.showProfileMenu = !this.showProfileMenu;
     },
     logout() {
-      this.$store.dispatch('auth/logout')
-      this.$router.push('/login')
+      this.$store.dispatch("auth/logout");
+      this.$router.push("/login");
     },
     goToProfile() {
-      this.$router.push('/profile')
-    }
-  }
-}
+      this.$router.push("/profile");
+    },
+  },
+};
 </script>
 
 <style scoped>
 .app-header {
   display: flex;
   width: 100%;
-  position: fixed ;
+  position: fixed;
   justify-content: space-between;
   align-items: center;
   height: 54px;
   background: #ffffff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 999;
 }
 
@@ -139,10 +131,10 @@ export default {
   border-radius: 4px;
   background: #f0f0f0;
   transition: background 0.2s, color 0.2s;
-  text-decoration: none;   
-  color: #2c3e50;            
-  font-weight: 500;        
-  background: transparent; 
+  text-decoration: none;
+  color: #2c3e50;
+  font-weight: 500;
+  background: transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -155,7 +147,7 @@ export default {
 .project-tab.active {
   background: #3498db;
   color: white;
-  text-decoration: none;  
+  text-decoration: none;
 }
 
 .new-project-btn {
@@ -195,7 +187,7 @@ export default {
   right: 0;
   top: 50px;
   background: white;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   min-width: 200px;
   z-index: 1000;

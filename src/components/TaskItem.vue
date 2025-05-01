@@ -3,7 +3,7 @@
     <div class="task-head">
       <div class="item">
         <span class="priority" v-html="priorityIcon(task.priority)"></span>
-        <span>{{ task.title }}</span>
+        <strong style="max-width: 400px;">{{ task.title }}</strong>
         <span class="status" :class="task.status">{{ statusLabel }}</span>
       </div>
       <div class="item">

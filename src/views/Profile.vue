@@ -42,7 +42,9 @@
                 @keyup.enter="addMember(org.id)"
                 class="member-add"
               />
-              <button class="add-memeber" @click="addMember(org.id)">Добавить</button>
+              <button class="add-memeber" @click="addMember(org.id)">
+                Добавить
+              </button>
             </div>
             <div class="member-row" style="margin-top: 15px; font-weight: 600">
               <div class="member-info">
@@ -63,7 +65,9 @@
                   <span style="width: 150px">{{
                     getUserName(member.userId)
                   }}</span>
-                  <span class="member-email">{{ getUserEmail(member.userId) }}</span>
+                  <span class="member-email">{{
+                    getUserEmail(member.userId)
+                  }}</span>
                 </div>
               </div>
 
@@ -124,88 +128,106 @@ export default {
       return this.$store.getters["organizations/userOrganizations"];
     },
   },
+  mounted() {
+  this.fetchAndSyncOrganizations();
+},
   methods: {
-    updateRole(member) {
-      this.$store.commit("organizations/UPDATE_MEMBER", {
-        orgId: this.orgId,
-        userId: member.userId,
-        role: member.role,
-      });
+    async fetchAndSyncOrganizations() {
+      try {
+        await this.$store.dispatch("organizations/fetchOrganizations");
+
+        // собрать все userId из всех организаций
+        const allOrgs = this.$store.state.organizations.organizations;
+        const userIds = new Set();
+        allOrgs.forEach((org) => {
+          org.members?.forEach((m) => userIds.add(m.userId));
+        });
+
+        await this.$store.dispatch(
+          "users/fetchUsersByIds",
+          Array.from(userIds)
+        );
+      } catch (err) {
+        console.error("Ошибка загрузки организаций и пользователей:", err);
+      }
     },
-    getOrgName(orgId) {
-      const org = this.$store.state.organizations.organizations.find(
-        (o) => o.id === orgId
-      );
-      return org?.name || "Неизвестная организация";
-    },
+
     getUserName(userId) {
-      const user = this.$store.state.auth.users.find((u) => u.id === userId);
-      return user?.name || "Неизвестный пользователь";
+      return this.$store.getters["users/getUserById"](userId).name || userId;
     },
-    getOrgProjects(orgId) {
-      return this.$store.state.projects.projects.filter(
-        (p) => p.orgId === orgId
-      );
+
+    getUserEmail(userId) {
+      return this.$store.getters["users/getUserById"](userId).email || "—";
     },
-    getOrgRole(orgId) {
-      return this.$store.getters["organizations/getUserRole"](
-        orgId,
-        this.user.id
-      );
+    async createOrganization() {
+      try {
+        if (!this.newOrgName.trim()) {
+          alert("Введите название организации");
+          return;
+        }
+
+        await this.$store.dispatch(
+          "organizations/createOrganization",
+          this.newOrgName.trim()
+        );
+        this.newOrgName = "";
+        this.showOrgForm = false;
+      } catch (err) {
+        console.error("Ошибка создания организации:", err);
+        alert("Не удалось создать организацию");
+      }
     },
-    createOrganization() {
-      const newOrg = {
-        id: generateId(),
-        name: this.newOrgName || "Новая организация",
-        creatorId: this.user.id,
-      };
-      this.$store.commit("organizations/ADD_ORGANIZATION", newOrg);
-      this.$store.commit("organizations/ADD_MEMBER", {
-        orgId: newOrg.id,
-        userId: this.user.id,
-        role: "admin",
-      });
-      this.newOrgName = "";
-    },
+
     async addMember(orgId) {
       const email = this.newMembers[orgId]?.trim();
       if (!email) return;
 
       try {
-        const user = this.$store.state.auth.users.find(
-          (u) => u.email === email
-        );
-        if (!user) throw new Error("Пользователь не найден");
-        this.$store.commit("organizations/ADD_MEMBER", {
+        await this.$store.dispatch("organizations/addMember", {
           orgId,
-          userId: user.id,
-          role: "member",
+          email,
         });
         this.newMembers[orgId] = "";
       } catch (error) {
-        alert(error.message);
+        alert(error.response?.data?.error || "Не удалось добавить участника");
       }
     },
-    deleteOrganization(orgId) {
-      if (confirm("Удалить эту организацию?")) {
-        this.$store.commit("organizations/DELETE_ORGANIZATION", orgId);
+
+    async deleteOrganization(orgId) {
+      if (!confirm("Удалить эту организацию?")) return;
+
+      try {
+        await this.$store.dispatch("organizations/deleteOrganization", orgId);
+      } catch (error) {
+        alert("Ошибка при удалении организации");
       }
     },
-    removeMember(orgId, userId) {
-      if (confirm("Удалить пользователя из организации?")) {
-        this.$store.commit("organizations/REMOVE_MEMBER", {
+
+    async removeMember(orgId, userId) {
+      if (!confirm("Удалить пользователя из организации?")) return;
+
+      try {
+        await this.$store.dispatch("organizations/removeMember", {
           orgId,
           userId,
         });
+      } catch (error) {
+        alert("Ошибка при удалении участника");
       }
     },
-    updateMemberRole(orgId, member) {
-      this.$store.commit("organizations/UPDATE_MEMBER", {
-        orgId,
-        userId: member.userId,
-        role: member.role,
-      });
+
+    async changeMemberRole(orgId, member, newRole) {
+      try {
+        await this.$store.dispatch("organizations/updateMemberRole", {
+          orgId,
+          userId: member.userId,
+          role: newRole,
+        });
+      } catch (error) {
+        alert("Не удалось изменить роль участника");
+      }
     },
+
     toggleRoleMenu(member) {
       // Закрываем все другие меню перед открытием
       this.userOrganizations.forEach((org) => {
@@ -215,34 +237,29 @@ export default {
       });
       member.showRoleMenu = !member.showRoleMenu;
     },
-    changeMemberRole(orgId, member, newRole) {
-      member.role = newRole;
-      member.showRoleMenu = false;
-      this.updateMemberRole(orgId, member);
+
+    getOrgName(orgId) {
+      const org = this.allOrganizations.find((o) => o.id === orgId);
+      return org?.name || "Неизвестная организация";
     },
-    updateMemberRole(orgId, member) {
-      this.$store.commit("organizations/UPDATE_MEMBER", {
+
+    getOrgRole(orgId) {
+      return this.$store.getters["organizations/getUserRole"](
         orgId,
-        userId: member.userId,
-        role: member.role,
-      });
+        this.user.id
+      );
     },
-    // formatDate(date) {
-    //   if (!date) return "—";
-    //   return new Date(date).toLocaleDateString("ru-RU");
-    // },
+
     roleBadgeClass(role) {
-      switch (role) {
-        case "admin":
-          return "badge-admin";
-        case "manager":
-          return "badge-manager";
-        case "member":
-          return "badge-member";
-        default:
-          return "";
-      }
+      return (
+        {
+          admin: "badge-admin",
+          manager: "badge-manager",
+          member: "badge-member",
+        }[role] || ""
+      );
     },
+
     roleLabel(role) {
       return (
         {
@@ -251,10 +268,6 @@ export default {
           member: "Исполнитель",
         }[role] || role
       );
-    },
-    getUserEmail(userId) {
-      const user = this.$store.state.auth.users.find((u) => u.id === userId);
-      return user?.email || "Нет почты";
     },
   },
 };
@@ -402,13 +415,13 @@ button[type="submit"] {
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-bottom: 0;
   border-right: 0;
-  border-top:0;
+  border-top: 0;
   background: white;
   font-size: 0.9rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.add-memeber{
+.add-memeber {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   border-top-right-radius: 6px;
   border-bottom-right-radius: 6px;

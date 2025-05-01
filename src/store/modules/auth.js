@@ -1,112 +1,134 @@
-import { compare, hash } from 'bcryptjs';
-import { generateId } from '@/utils/id';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+} from "firebase/auth";
+import { auth } from "@/firebase";
+import axios from "axios";
+import router from "@/router";
 
 export default {
   namespaced: true,
-  state: () => ({
+  state: {
     user: null,
-    users: JSON.parse(localStorage.getItem('users')) || []
+  },
 
-  }),
   mutations: {
     SET_USER(state, user) {
       state.user = user;
       localStorage.setItem("auth", JSON.stringify(user));
     },
-    REGISTER_USER(state, newUser) {
-      state.users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(state.users));
+
+    CLEAR_USER(state) {
+      state.user = null;
+      // localStorage.removeItem("auth");
     },
+
     UPDATE_USER_PROJECTS(state, projectId) {
       if (!state.user) return;
-  
       state.user.projects = state.user.projects || [];
       state.user.projects.push(projectId);
-      localStorage.setItem("auth", JSON.stringify(state.user));
+      // localStorage.setItem("auth", JSON.stringify(state.user));
     },
-    canDeleteProject(user, project) {
-      return user.role === 'admin' || project.creatorId === user.id
-    },
-    UPDATE_USERS(state, users) {
-      state.users = users;
-      localStorage.setItem('users', JSON.stringify(users));
-    }
   },
+
   actions: {
-    async register({ commit, dispatch }, { email, name, password }) {
+    async register({ commit, dispatch }, { email, password, name }) {
       try {
-        const hashedPassword = await hash(password, 10);
-        const user = {
-          id: generateId(),
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const user = userCredential.user;
+
+        await updateProfile(user, { displayName: name });
+
+        const idToken = await user.getIdToken();
+
+        const { data } = await axios.post("/api/auth/register", {
+          idToken,
+          name,
+        });
+
+        const userId = data.userId; // ✅ вот он
+
+        commit("SET_USER", {
+          id: userId,
           email,
           name,
-          password: hashedPassword
-        };
+        });
 
-        // Создаем организацию
-        const org = {
-          id: generateId(),
-          name: `${name}'s Organization`,
-          creatorId: user.id
-        };
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        console.log("fetch orgs for", userId); // ✅ теперь всё ок
+        await dispatch("organizations/fetchOrganizations", null, {
+          root: true,
+        });
 
-        // Коммитим изменения
-        commit('REGISTER_USER', user);
-        commit('organizations/ADD_ORGANIZATION', org, { root: true });
-        commit('organizations/ADD_MEMBER', {
-          orgId: org.id,
-          userId: user.id,
-          role: 'admin'
-        }, { root: true });
+        const orgs = this.state.organizations.organizations;
+        const userIds = new Set();
+        orgs.forEach((org) => {
+          org.members?.forEach((m) => userIds.add(m.userId));
+        });
 
-        // Автоматический логин
-        commit('SET_USER', user);
-        
-        return true;
+        await dispatch("users/fetchUsersByIds", Array.from(userIds), {
+          root: true,
+        });
+        router.push("/");
       } catch (error) {
-        console.error('Ошибка регистрации:', error);
-        return false;
+        console.error("Ошибка регистрации:", error);
+        alert("Ошибка регистрации: " + error.message);
       }
     },
-    async login({ commit, state }, { email, password }) {
-      const user = state.users.find(u => u.email === email);
-      if (user.password.length < 30) {
-        if (password !== user.password) throw new Error('Неверные данные');
-      } else {
-        if (!(await compare(password, user.password))) throw new Error('Неверные данные');
+
+    async login({ commit, dispatch }, { email, password }) {
+      try {
+        const { user } = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const idToken = await user.getIdToken();
+
+        const { data } = await axios.post("/api/auth/login", { idToken });
+
+        commit("SET_USER", {
+          id: data.uid,
+          email: data.email,
+          name: data.name,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await dispatch("organizations/fetchOrganizations", null, {
+          root: true,
+        });
+
+        const orgs = this.state.organizations.organizations;
+        const userIds = new Set();
+
+        orgs.forEach((org) => {
+          org.members?.forEach((m) => userIds.add(m.userId));
+        });
+
+        await dispatch("users/fetchUsersByIds", Array.from(userIds), {
+          root: true,
+        });
+        router.push("/");
+      } catch (error) {
+        console.error("Ошибка входа:", error);
+        alert("Ошибка входа: " + error.message);
       }
-      if (!user || !(await compare(password, user.password))) { 
-        throw new Error('Неверные учетные данные');
-      }
-      
-      if (!user) throw new Error('Неверные учетные данные');
-      commit('SET_USER', user);
-      console.log('Ищем пользователя:', email);
-      console.log('Найденный пользователь:', user);
     },
-    logout({ commit }) {
-      commit('SET_USER', null)
-      localStorage.removeItem('auth')
+
+    async logout({ commit }) {
+      await signOut(auth);
+      commit("CLEAR_USER");
+      router.push("/login");
     },
-    checkAuth({ commit }) {
-      const savedUser = localStorage.getItem('auth');
-      if (savedUser) {
-        const user = JSON.parse(savedUser);
-        commit('SET_USER', user);
-        return true;
-      }
-      return false;
-    }
   },
+
   getters: {
-    isAuthenticated: state => !!state.user,
-    getUserOrganizations: (state) => {
-      return state.user?.organizations || [];
-    },
-    canDeleteProject: (state) => state.user?.role === 'admin',
-    getOrgRole: (state) => (orgId) => {
-      const org = state.user?.organizations?.find((o) => o.orgId === orgId);
-      return org?.role || "member";
-    },
-  }
-}
+    user: (state) => state.user,
+    isAuthenticated: (state) => !!state.user
+  },
+};

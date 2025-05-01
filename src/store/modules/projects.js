@@ -1,9 +1,69 @@
+import axios from "axios";
+
 export default {
   namespaced: true,
   state: () => ({
     projects: JSON.parse(localStorage.getItem('projects')) || [],
   }),
   actions: {
+    async fetchProjects({ commit, rootState, dispatch }) {
+      const orgId = rootState.organizations.currentOrg?.id;
+      if (!orgId) return;
+    
+      try {
+        const { data } = await axios.get(`/api/projects?orgId=${orgId}`);
+        commit("INIT_PROJECTS", data);
+    
+        // 🔥 Сбор всех userId
+        const userIds = new Set();
+        data.forEach((project) => {
+          project.members?.forEach((m) => userIds.add(m.userId));
+          project.activities?.forEach((act) => {
+            if (act.owner) userIds.add(act.owner);
+            act.tasks?.forEach((t) => {
+              if (t.assignee) userIds.add(t.assignee);
+              t.stories?.forEach((s) => {
+                if (s.assignee) userIds.add(s.assignee);
+                s.comments?.forEach((c) => {
+                  if (c.userId) userIds.add(c.userId);
+                });
+              });
+            });
+          });
+        });
+    
+        await dispatch("users/fetchUsersByIds", Array.from(userIds), { root: true });
+      } catch (error) {
+        console.error("Ошибка при загрузке проектов:", error);
+      }
+    },
+    
+    async createProject({ commit, dispatch, rootState }, payload) {
+      const user = rootState.auth.user;
+      const org = rootState.organizations.currentOrg;
+    
+      if (!user || !org) {
+        console.warn("Нет данных пользователя или организации");
+        return;
+      }
+    
+      try {
+        const { data } = await axios.post("/api/projects", {
+          ...payload,
+          orgId: org.id,
+          creatorId: user.id,
+          memberInfo: {
+            name: user.name,
+            email: user.email
+          }
+        });
+    
+        // После создания — перезагружаем
+        await dispatch("fetchProjects");
+      } catch (error) {
+        console.error("Ошибка при создании проекта:", error);
+      }
+    },
     async deleteProject({ commit, rootState }, projectId) {
       commit('DELETE_PROJECT', projectId);
   
@@ -156,11 +216,10 @@ export default {
         completed: allTasks.filter(t => t.status === 'done').length
       }
     },
-    userProjects: (state, getters, rootState) => {
+    userProjects: (state, getters, rootState, rootGetters) => {
       const userId = rootState.auth.user?.id;
-      return state.projects.filter(project => 
-        project.creatorId === userId || 
-        project.members.some(m => m.userId === userId)
+      return state.projects.filter(project =>
+        project.members?.some(m => m.userId === userId)
       );
     },
     orgProjects: (state) => (orgId) => {

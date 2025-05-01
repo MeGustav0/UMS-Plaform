@@ -93,7 +93,7 @@
             <div class="story-header">
               <div class="item">
                 <span class="priority" v-html="priorityIcon(story.priority)"></span>
-                <strong>{{ story.title }}</strong>
+                <strong style="max-width: 400px;">{{ story.title }}</strong>
                 <span class="status" :class="story.status">
                   {{story.status }}
                 </span>

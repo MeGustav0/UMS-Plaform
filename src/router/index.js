@@ -48,29 +48,37 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const isAuth = store.getters['auth/isAuthenticated'];
+  const savedUser = localStorage.getItem("auth");
 
+  // ✅ если пользователь не авторизован, но есть в localStorage
+  if (!isAuth && savedUser) {
+    store.commit('auth/SET_USER', JSON.parse(savedUser));
+    await store.dispatch('organizations/fetchOrganizations');
+    await store.dispatch('projects/fetchProjects');
+  }
+
+  // ✅ Защита доступа к проекту
   if (to.meta.requiresOrgAuth) {
     const projectId = to.params.id;
     const project = store.getters['projects/getProjectById'](projectId);
-    
-    // if (!project) {
-    //   next('/404');
-    //   return;
-    // }
-    
+
+    if (!project) {
+      // можно показать заглушку или просто перейти домой
+      return next('/404');
+    }
+
     const userRole = store.getters['organizations/getUserRole'](
       project.orgId,
-      store.state.auth.user.id
+      store.state.auth.user?.id
     );
-    
-    if (!['admin', 'manager', 'member'].includes(userRole)) {
-      next('/forbidden');
-      return;
-    }
+
+    // if (!['admin', 'manager', 'member'].includes(userRole)) {
+    //   return next('/forbidden');
+    // }
   }
-  
+
   next();
 });
 

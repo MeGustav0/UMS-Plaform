@@ -89,9 +89,9 @@
               </button>
             </div>
           </div>
-          <h3 style="margin-bottom: 0" class="description yellow">
+          <h4 style="margin-bottom: 0" class="description yellow">
             {{ task.title }}
-          </h3>
+          </h4>
           <!-- <div class="description yellow">{{ task.description || 'Нет описания' }}</div> -->
           <div class="description yellow">
             <img class="img_edit" src="../assets/user.svg" alt="" />:
@@ -104,7 +104,7 @@
           </div>
         </div>
       </div>
-      <button @click="addTask" class="add-task">+ Задача</button>
+      <button @click="addTask" class="add-task">+</button>
     </div>
   </div>
 </template>
@@ -339,7 +339,7 @@ export default {
 .add-task {
   font-weight: 600;
   width: 100%;
-  height: 136px;
+  height: 132px;
   border: 0;
   opacity: 0.05;
   cursor: pointer;

@@ -82,7 +82,7 @@
           />
 
           <div class="file-upload">
-            <input type="file" @change="handleFileUpload" />
+            <input type="file" @change="handleFileUpload" class="add-file"/>
           </div>
 
           <button type="button" @click="addComment" class="add-comment-btn">
@@ -97,9 +97,7 @@
             >
               <div class="comment-meta">
                 <span class="comment">{{ getUserName(comment.userId) }}</span>
-                <span class="comment">{{
-                  formatFullDate(comment.createdAt)
-                }}</span>
+                <span class="comment">{{ formatFullDate(comment.createdAt) }}</span>
               </div>
               <div v-html="comment.content" class="comment-content"></div>
               <div v-if="comment.files.length">
@@ -377,6 +375,25 @@ textarea {
 .comment {
   font-size: 12px;
   color: #888;
+}
+
+.add-file {
+  
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.add-file:hover {
+  opacity: 0.9;
+}
+
+/* Кнопки действий */
+.add-file[type="submit"] {
+  background: #3498db;
+  color: white;
 }
 
 </style>
