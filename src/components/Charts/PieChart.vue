@@ -18,14 +18,12 @@ export default {
     data: {
       type: Array,
       required: true,
-      // каждый элемент { label: String, value: Number }
       validator: arr => arr.every(i => 'label' in i && 'value' in i)
     },
     title: { type: String, default: 'Распределение' }
   },
   computed: {
     series() {
-      // массив значений
       return this.data.map(i => i.value)
     },
     chartOptions() {

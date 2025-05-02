@@ -26,7 +26,7 @@
             :value="member.userId"
             style="color: black"
           >
-          {{ getUserName(member.userId) }}
+            {{ getUserName(member.userId) }}
           </option>
         </select>
       </label>
@@ -92,10 +92,13 @@
           >
             <div class="story-header">
               <div class="item">
-                <span class="priority" v-html="priorityIcon(story.priority)"></span>
-                <strong style="max-width: 400px;">{{ story.title }}</strong>
+                <span
+                  class="priority"
+                  v-html="priorityIcon(story.priority)"
+                ></span>
+                <strong style="max-width: 400px">{{ story.title }}</strong>
                 <span class="status" :class="story.status">
-                  {{story.status }}
+                  {{ story.status }}
                 </span>
               </div>
               <div class="story-meta">
@@ -153,7 +156,9 @@ export default {
   },
   computed: {
     projectReleases() {
-      return this.$store.getters["releases/projectReleases"](this.project.id);
+      return this.$store.getters["releases/getReleasesByProject"](
+        this.project.id
+      );
     },
     selectedRelease() {
       return (
@@ -194,7 +199,7 @@ export default {
         const priorityOk =
           this.selectedPriority === "all" ||
           task.priority === this.selectedPriority;
-        return userOk && deadlineOk && priorityOk; // statusOk
+        return userOk && deadlineOk && priorityOk; 
       });
     },
     // Фильтрация историй
@@ -217,16 +222,9 @@ export default {
     formatDate(date) {
       return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
     },
-    getUserName(userId) {
-      const fromProject = this.project.members.find((u) => u.userId === userId);
-      if (fromProject && fromProject.name) {
-        return fromProject.name;
-      }
 
-      const fromAuth = this.$store.state.auth.users.find(
-        (u) => u.id === userId
-      );
-      return fromAuth?.name || "Неизвестный";
+    getUserName(userId) {
+      return this.$store.getters["users/getUserById"](userId)?.name || "Неизвестный";
     },
     openEditStoryModal(releaseId, taskPath, story) {
       this.editingReleaseId = releaseId;
@@ -375,7 +373,7 @@ input {
   align-items: flex-start;
 }
 
-.item{
+.item {
   display: flex;
   align-items: flex-start;
   gap: 15px;

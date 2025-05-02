@@ -117,27 +117,47 @@ export default {
         );
     },
     filteredStories() {
-      const releasesToCheck =
-        this.selectedRelease === "all" ? this.releases : [this.currentRelease];
+      let releasesToCheck = [];
+
+      if (this.selectedRelease === "all") {
+        if (Array.isArray(this.releases)) {
+          releasesToCheck = this.releases;
+        } else {
+          console.warn("❗ releases не массив:", this.releases);
+          return [];
+        }
+      } else {
+        if (this.currentRelease && this.currentRelease.activitiesSnapshot) {
+          releasesToCheck = [this.currentRelease];
+        } else {
+          console.warn(
+            "❗ currentRelease не найден или без snapshot:",
+            this.currentRelease
+          );
+          return [];
+        }
+      }
+
       let stories = [];
 
-      releasesToCheck.forEach((release) => {
-        release.activitiesSnapshot.forEach((activity) => {
+      for (const release of releasesToCheck) {
+        if (!release.activitiesSnapshot) continue;
+
+        for (const activity of release.activitiesSnapshot || []) {
           if (
-            this.selectedActivity === "all" ||
-            activity.id === this.selectedActivity
-          ) {
-            activity.tasks.forEach((task) => {
-              if (
-                this.selectedTask === "all" ||
-                task.id === this.selectedTask
-              ) {
-                stories.push(...(task.stories || []));
-              }
-            });
+            this.selectedActivity !== "all" &&
+            activity.id !== this.selectedActivity
+          )
+            continue;
+
+          for (const task of activity.tasks || []) {
+            if (this.selectedTask !== "all" && task.id !== this.selectedTask)
+              continue;
+
+            stories.push(...(task.stories || []));
           }
-        });
-      });
+        }
+      }
 
       return stories;
     },
@@ -147,18 +167,23 @@ export default {
       return {
         activities: {
           total: this.filteredActivities.length,
-          completed: this.filteredActivities.filter((a) =>
-            a.tasks.every((t) => t.status === "done")
-          ).length,
+          completed: this.filteredActivities.filter((a) => {
+            return (
+              a.tasks?.length > 0 && a.tasks.every((t) => t.status === "done")
+            );
+          }).length,
         },
         tasks: {
           total: this.filteredTasks.length,
           completed: this.filteredTasks.filter((t) => t.status === "done")
             .length,
           overdue: this.filteredTasks.filter((t) => {
+            if (!t.endDate) return false;
             const date = new Date(t.endDate);
             return (
-              t.status !== "done" && this.isValidDate(date) && date < new Date()
+              this.isValidDate(date) &&
+              t.status !== "done" &&
+              date.getTime() < Date.now()
             );
           }).length,
         },
@@ -166,10 +191,13 @@ export default {
           total: this.filteredStories.length,
           completed: this.filteredStories.filter((s) => s.status === "done")
             .length,
-          overdue: this.filteredStories.filter((s) => {
-            const date = new Date(s.endDate);
+          overdue: this.filteredTasks.filter((t) => {
+            if (!t.endDate) return false;
+            const date = new Date(t.endDate);
             return (
-              s.status !== "done" && this.isValidDate(date) && date < new Date()
+              this.isValidDate(date) &&
+              t.status !== "done" &&
+              date.getTime() < Date.now()
             );
           }).length,
         },
@@ -208,7 +236,6 @@ export default {
       }));
     },
 
-    // Что показывать?
     showActivitiesMetrics() {
       return this.selectedTask === "all" && this.selectedActivity === "all";
     },
@@ -216,7 +243,7 @@ export default {
       return this.selectedTask === "all";
     },
     showStoriesMetrics() {
-      return true; // истории всегда показываем в метриках
+      return true; 
     },
     showTasksChart() {
       return this.selectedTask === "all";
@@ -225,7 +252,6 @@ export default {
       return true;
     },
 
-    // Текстовые метки для статусов
     statusLabel() {
       return (status) =>
         ({

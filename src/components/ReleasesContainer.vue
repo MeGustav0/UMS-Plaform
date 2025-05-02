@@ -163,7 +163,9 @@
             <div class="task-header">
               <button
                 class="add-story-btn"
-                @click="emitAddStory(release.id, [activity.id, task.id])"
+                @click="
+                  openEditStoryModal(release.id, [activity.id, task.id], {})
+                "
               >
                 +
               </button>
@@ -177,7 +179,6 @@
       v-if="showStoryModal"
       :story="editingStory"
       :projectMembers="projectMembers"
-      @save="handleSaveStory"
       @close="closeStoryModal"
     />
   </div>
@@ -185,16 +186,15 @@
 
 <script>
 import EditStoryModal from "./Modal/EditStoryModal.vue";
-import { generateId } from "@/utils/id";
+import { watch } from "vue";
 
 export default {
   components: { EditStoryModal },
   emits: ["add-story"],
   props: {
-    releases: {
-      type: Array,
+    project: {
+      type: Object,
       required: true,
-      default: () => [],
     },
   },
   data() {
@@ -208,6 +208,10 @@ export default {
     };
   },
   computed: {
+    releases() {
+      const id = this.project?.id;
+      return id ? this.$store.getters["releases/getReleasesByProject"](id) : [];
+    },
     projectMembers() {
       const release = this.releases.find((r) => r.id === this.editingReleaseId);
       if (!release) return [];
@@ -217,9 +221,35 @@ export default {
       return project?.members || [];
     },
   },
+  mounted() {
+    // Подгружаем релизы
+    watch(
+      () => this.project?.id,
+      async (projectId) => {
+        if (projectId) {
+          await this.$store.dispatch("releases/fetchReleases", projectId);
+        }
+      },
+      { immediate: true }
+    );
+  },
   methods: {
-    emitAddStory(releaseId, taskPath) {
-      this.$emit("add-story", { releaseId, taskPath });
+    async saveRelease(updated) {
+      try {
+        await this.$store.dispatch("releases/updateRelease", updated);
+        this.showEditModal = false;
+      } catch (err) {
+        alert("Не удалось сохранить изменения");
+      }
+    },
+    async deleteRelease(releaseId) {
+      if (!confirm("Удалить релиз?")) return;
+
+      try {
+        await this.$store.dispatch("releases/deleteRelease", releaseId);
+      } catch (err) {
+        alert("Ошибка при удалении релиза");
+      }
     },
     openEditStoryModal(releaseId, taskPath, story) {
       this.editingReleaseId = releaseId;
@@ -233,16 +263,33 @@ export default {
       this.editingReleaseId = null;
       this.editingTaskPath = null;
     },
-    handleSaveStory(updatedStory) {
+    handleAddStory({ releaseId, taskPath }) {
+      this.newStoryReleaseId = releaseId;
+      this.newStoryTaskPath = taskPath;
+      this.editingItem = {
+        id: null,
+        title: "",
+        priority: "medium",
+        status: "todo",
+        assignee: "",
+        description: "",
+        createdAt: new Date().toISOString(),
+        endDate: null,
+        comments: [],
+      };
+      this.editingType = "story";
+      this.showStoryModal = true;
+    },
+    async handleSaveStory(updatedStory) {
       if (updatedStory.id) {
-        this.$store.commit("releases/UPDATE_STORY", {
+        await this.$store.dispatch("releases/updateStory", {
           releaseId: this.editingReleaseId,
           taskPath: this.editingTaskPath,
           story: updatedStory,
         });
       } else {
         updatedStory.id = generateId();
-        this.$store.commit("releases/ADD_STORY", {
+        await this.$store.dispatch("releases/addStory", {
           releaseId: this.editingReleaseId,
           taskPath: this.editingTaskPath,
           story: updatedStory,
@@ -250,9 +297,9 @@ export default {
       }
       this.closeStoryModal();
     },
-    deleteStory(releaseId, taskPath, storyId) {
+    async deleteStory(releaseId, taskPath, storyId) {
       if (confirm("Удалить эту историю?")) {
-        this.$store.commit("releases/DELETE_STORY", {
+        await this.$store.dispatch("releases/deleteStory", {
           releaseId,
           taskPath,
           storyId,
@@ -262,11 +309,12 @@ export default {
     formatDate(date) {
       return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
     },
-    getUserName(id) {
-      const user = this.$store.state.auth.users.find((u) => u.id === id);
-      return user?.name || "—";
+    getUserName(userId) {
+      return (
+        this.$store.getters["users/getUserById"](userId)?.name || "Неизвестный"
+      );
     },
-    updateStoryStatus(releaseId, taskPath, story) {
+    async updateStoryStatus(releaseId, taskPath, story) {
       const updatedStory = { ...story };
 
       if (updatedStory.status === "done") {
@@ -275,51 +323,62 @@ export default {
         updatedStory.closedAt = null;
       }
 
-      this.$store.commit("releases/UPDATE_STORY", {
+      await this.$store.dispatch("releases/updateStory", {
         releaseId,
         taskPath,
         story: updatedStory,
       });
     },
-    startDrag(event, releaseId, activityId, taskId) {
+    startDrag(event, releaseId, activityId, taskId, storyId) {
       event.dataTransfer.setData(
         "text/plain",
-        JSON.stringify({
-          releaseId,
-          activityId,
-          taskId,
-        })
+        JSON.stringify({ releaseId, activityId, taskId, storyId })
       );
     },
-    onDrop(event, targetReleaseId, targetActivityId) {
-      const data = JSON.parse(event.dataTransfer.getData("text/plain"));
-      if (!data) return;
+    async onDrop(event, targetReleaseId, targetActivityId, targetTaskId) {
+      const raw = event.dataTransfer.getData("text/plain");
+      if (!raw) return;
+      const { releaseId, activityId, taskId, storyId } = JSON.parse(raw);
 
-      // Перемещаем задачу через мутацию
-      this.$store.commit("releases/MOVE_TASK_BETWEEN_ACTIVITIES", {
-        fromReleaseId: data.releaseId,
-        fromActivityId: data.activityId,
-        toReleaseId: targetReleaseId,
-        toActivityId: targetActivityId,
-        taskId: data.taskId,
+      if (
+        releaseId === targetReleaseId &&
+        activityId === targetActivityId &&
+        taskId === targetTaskId
+      )
+        return;
+
+      this.$store.commit("releases/MOVE_STORY", {
+        from: { releaseId, activityId, taskId, storyId },
+        to: {
+          releaseId: targetReleaseId,
+          activityId: targetActivityId,
+          taskId: targetTaskId,
+        },
       });
     },
     startEditingReleaseName(release) {
       this.editingReleaseNameId = release.id;
       this.newReleaseName = release.name;
     },
-    saveReleaseName(releaseId) {
-      if (this.newReleaseName.trim()) {
-        this.$store.commit("releases/UPDATE_RELEASE_NAME", {
-          releaseId,
-          newName: this.newReleaseName.trim(),
-        });
+    async saveReleaseName(releaseId) {
+      const release = this.releases.find((r) => r.id === releaseId);
+      if (!release || release.name === this.newReleaseName) {
+        this.editingReleaseNameId = null;
+        return;
       }
+
+      const updated = { ...release, name: this.newReleaseName };
+
+      try {
+        await this.$store.dispatch("releases/updateRelease", updated);
+      } catch (e) {
+        console.error("Ошибка при обновлении имени релиза:", e);
+      }
+
       this.editingReleaseNameId = null;
-      this.newReleaseName = "";
     },
     priorityIcon(priority) {
-      const size = 16; // размер кружка
+      const size = 16;
       const color =
         {
           low: "#70b013",
@@ -337,20 +396,15 @@ export default {
       story.showPriorityMenu = !story.showPriorityMenu;
     },
 
-    changeStoryPriority(story, newPriority, releaseId, taskPath) {
+    async changeStoryPriority(story, newPriority, releaseId, taskPath) {
       story.priority = newPriority;
       story.showPriorityMenu = false;
 
-      this.$store.commit("releases/UPDATE_STORY", {
+      await this.$store.dispatch("releases/updateStory", {
         releaseId,
         taskPath,
         story: { ...story },
       });
-    },
-    deleteRelease(releaseId) {
-      if (confirm("Вы уверены, что хотите удалить этот релиз?")) {
-        this.$store.commit("releases/DELETE_RELEASE", releaseId);
-      }
     },
   },
 };

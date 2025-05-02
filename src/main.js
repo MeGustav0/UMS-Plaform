@@ -8,12 +8,10 @@ const app = createApp(App);
 app.use(store);
 app.use(router);
 
-// 🧠 Восстанавливаем пользователя
 const savedUser = localStorage.getItem("auth");
 if (savedUser) {
   store.commit("auth/SET_USER", JSON.parse(savedUser));
 
-  // ⛓ Загружаем организации и пользователей
   store.dispatch("organizations/fetchOrganizations").then(() => {
     const orgs = store.state.organizations.organizations;
     const userIds = new Set();
@@ -23,7 +21,7 @@ if (savedUser) {
     });
 
     store.dispatch("users/fetchUsersByIds", Array.from(userIds));
+    store.dispatch("projects/fetchProjects");
   });
 }
-
 app.mount("#app");

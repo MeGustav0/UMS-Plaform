@@ -66,8 +66,6 @@
 </template>
 
 <script>
-import { generateId } from "@/utils/id";
-
 export default {
   data() {
     return {
@@ -111,7 +109,6 @@ export default {
         this.isSubmitting = true;
         const creator = this.$store.state.auth.user;
 
-        // Формируем список участников
         const members = this.selectedMembers.map((userId) => {
           const user = this.$store.state.users.usersById[userId];
           const org = this.$store.state.organizations.organizations.find(
@@ -144,7 +141,6 @@ export default {
           });
         }
 
-        // Отправляем проект через dispatch (в Firestore)
         await this.$store.dispatch("projects/createProject", {
           name: this.form.name,
           description: this.form.description,

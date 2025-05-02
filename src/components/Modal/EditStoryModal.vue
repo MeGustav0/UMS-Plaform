@@ -82,7 +82,7 @@
           />
 
           <div class="file-upload">
-            <input type="file" @change="handleFileUpload" class="add-file"/>
+            <input type="file" @change="handleFileUpload" class="add-file" />
           </div>
 
           <button type="button" @click="addComment" class="add-comment-btn">
@@ -97,7 +97,9 @@
             >
               <div class="comment-meta">
                 <span class="comment">{{ getUserName(comment.userId) }}</span>
-                <span class="comment">{{ formatFullDate(comment.createdAt) }}</span>
+                <span class="comment">{{
+                  formatFullDate(comment.createdAt)
+                }}</span>
               </div>
               <div v-html="comment.content" class="comment-content"></div>
               <div v-if="comment.files.length">
@@ -129,22 +131,63 @@ export default {
   props: ["story", "projectMembers"],
   data() {
     return {
-      commentContent: "", // отдельная переменная для комментариев
+      commentContent: "",
       newFiles: [],
       localStory: {
         ...this.story,
+        status: "todo",
+        priority: "medium",
         comments: this.story.comments ? [...this.story.comments] : [],
       },
     };
   },
+  watch: {
+    story: {
+      immediate: true,
+      handler(newStory) {
+        this.localStory = {
+          status: "todo",
+          priority: "medium",
+          createdAt: new Date().toISOString(),
+          ...newStory,
+          comments: newStory?.comments ? [...newStory.comments] : [],
+        };
+      },
+    },
+  },
   methods: {
-    saveStory() {
-      this.$emit("save", this.localStory);
-      this.$emit("close");
+    async saveStory() {
+      const isNew = !this.localStory.id;
+
+      if (isNew) {
+        this.localStory.id = generateId();
+        this.localStory.createdAt = new Date().toISOString();
+        this.localStory.closedAt =
+          this.localStory.status === "done" ? new Date().toISOString() : null;
+      }
+
+      const releaseId = this.$parent.editingReleaseId;
+      const taskPath = this.$parent.editingTaskPath;
+
+      try {
+        const action = isNew ? "addStory" : "updateStory";
+
+        await this.$store.dispatch(`releases/${action}`, {
+          releaseId,
+          taskPath,
+          story: this.localStory,
+        });
+
+        this.$emit("close");
+      } catch (err) {
+        console.error("Ошибка при сохранении истории:", err);
+        alert("Не удалось сохранить историю");
+      }
     },
     getUserName(userId) {
-      const user = this.$store.state.auth.users.find((u) => u.id === userId);
-      return user?.name || "Неизвестный";
+      return (
+        this.$store.getters["users/getUserById"](userId)?.name || "Неизвестный"
+      );
     },
     formatDate(date) {
       return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
@@ -173,7 +216,7 @@ export default {
         files: [...this.newFiles],
         userId: this.$store.state.auth.user?.id,
       });
-      this.commentContent = ""; // очищаем поле
+      this.commentContent = ""; 
       this.newFiles = [];
     },
     stripHtml(html) {
@@ -378,7 +421,6 @@ textarea {
 }
 
 .add-file {
-  
   padding: 8px 15px;
   border: none;
   border-radius: 4px;
@@ -390,10 +432,8 @@ textarea {
   opacity: 0.9;
 }
 
-/* Кнопки действий */
 .add-file[type="submit"] {
   background: #3498db;
   color: white;
 }
-
 </style>

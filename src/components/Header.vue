@@ -1,6 +1,5 @@
 <template>
   <header class="app-header">
-    <!-- Логотип -->
     <div class="logo">
       <router-link to="/">USM Platform</router-link>
     </div>

@@ -4,9 +4,7 @@
     <div class="content">
       <h3 class="title">{{ title }}</h3>
       <p class="value">{{ value }}</p>
-      <!-- Показываем прогресс, если он передан -->
       <p v-if="progress !== null" class="progress">Прогресс: {{ progress }}%</p>
-      <!-- Показываем overdue, если передан -->
       <p v-if="overdue !== null" class="overdue">Просрочено: {{ overdue }}</p>
     </div>
   </div>

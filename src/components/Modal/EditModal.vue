@@ -1,8 +1,7 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')" tabindex="-1">
     <div class="modal">
-
-      <h3>{{ local.id ? 'Редактировать' : 'Создать' }} {{ title }}</h3>
+      <h3>{{ local.id ? "Редактировать" : "Создать" }} {{ title }}</h3>
 
       <!-- Название -->
       <div class="form-group">
@@ -28,13 +27,17 @@
           <option value="high">Высокий</option>
         </select>
       </div>
-      
+
       <!-- Исполнитель / Ответственный -->
       <div v-if="canChooseResponsible" class="form-group">
         <label>{{ responsibleLabel }}</label>
         <select v-model="responsibleField">
           <option value="">—</option>
-          <option v-for="member in projectMembers" :key="member.userId" :value="member.userId">
+          <option
+            v-for="member in projectMembers"
+            :key="member.userId"
+            :value="member.userId"
+          >
             {{ getUserName(member.userId) }}
           </option>
         </select>
@@ -48,7 +51,7 @@
         <label>Дедлайн</label>
         <input type="date" v-model="local.endDate" />
       </div>
-      
+
       <!-- Описание -->
       <div class="form-group">
         <label>Описание</label>
@@ -59,7 +62,6 @@
         <button type="button" @click="$emit('close')">Отмена</button>
         <button type="submit" @click="save">Сохранить</button>
       </div>
-
     </div>
   </div>
 </template>
@@ -68,13 +70,13 @@
 export default {
   props: {
     data: { type: Object, required: true },
-    type: { type: String, required: true }, // 'activity' или 'task'
-    projectMembers: { type: Array, default: () => [] }
+    type: { type: String, required: true }, 
+    projectMembers: { type: Array, default: () => [] },
   },
 
   data() {
     return {
-      local: this.prepareLocal(this.data)
+      local: this.prepareLocal(this.data),
     };
   },
 
@@ -84,64 +86,62 @@ export default {
       immediate: true,
       handler(newData) {
         this.local = this.prepareLocal(newData);
-      }
-    }
+      },
+    },
   },
 
   computed: {
     title() {
-      return { task: 'задачу', activity: 'активность' }[this.type] || '';
+      return { task: "задачу", activity: "активность" }[this.type] || "";
     },
 
     canChooseResponsible() {
-      return this.type === 'task' || this.type === 'activity';
+      return this.type === "task" || this.type === "activity";
     },
 
     responsibleLabel() {
-      return this.type === 'task' ? 'Исполнитель' : 'Ответственный';
+      return this.type === "task" ? "Исполнитель" : "Ответственный";
     },
 
     responsibleField: {
       get() {
-        return this.type === 'task' ? this.local.assignee : this.local.owner;
+        return this.type === "task" ? this.local.assignee : this.local.owner;
       },
       set(value) {
-        if (this.type === 'task') {
+        if (this.type === "task") {
           this.local.assignee = value;
-        } else if (this.type === 'activity') {
+        } else if (this.type === "activity") {
           this.local.owner = value;
         }
-      }
-    }
+      },
+    },
   },
 
   methods: {
     prepareLocal(data) {
       const copy = JSON.parse(JSON.stringify(data || {}));
-      if (this.type === 'task' && typeof copy.assignee === 'undefined') {
-        copy.assignee = '';
+      if (this.type === "task" && typeof copy.assignee === "undefined") {
+        copy.assignee = "";
       }
-      if (this.type === 'activity' && typeof copy.owner === 'undefined') {
-        copy.owner = '';
+      if (this.type === "activity" && typeof copy.owner === "undefined") {
+        copy.owner = "";
       }
-      if (this.type === 'task' && typeof copy.status === 'undefined') {
-        copy.status = 'todo';
+      if (this.type === "task" && typeof copy.status === "undefined") {
+        copy.status = "todo";
       }
       return copy;
     },
-
     getUserName(userId) {
-      const user = this.$store.state.auth.users.find(u => u.id === userId);
-      return user?.name || '—';
+      const user = this.$store.getters["users/getUserById"](userId);
+      return user?.name || "Неизвестный";
     },
-
     save() {
-      this.$emit('save', { ...this.local });
+      this.$emit("save", { ...this.local });
     },
     formatDate(date) {
-      return date ? new Date(date).toLocaleDateString('ru-RU') : '—';
-    }
-  }
+      return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
+    },
+  },
 };
 </script>
 

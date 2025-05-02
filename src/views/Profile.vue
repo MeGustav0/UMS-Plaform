@@ -108,8 +108,6 @@
 </template>
 
 <script>
-import { generateId } from "@/utils/id";
-
 export default {
   props: ["orgId"],
   data: () => ({
@@ -281,7 +279,6 @@ export default {
   font-family: Arial, sans-serif;
 }
 
-/* Личная информация */
 .personal-info {
   background: #f8f9fa;
   padding: 20px;
@@ -295,7 +292,6 @@ export default {
   margin-bottom: 10px;
 }
 
-/* Секция организаций */
 .org-section {
   background: white;
   padding: 20px;
@@ -308,7 +304,6 @@ export default {
   margin-bottom: 15px;
 }
 
-/* Карточка организации */
 .org-card {
   background: #f8f9fa;
   padding: 15px;
@@ -323,7 +318,6 @@ export default {
   margin: 0 0 10px 0;
 }
 
-/* Формы */
 .org-form {
   margin: 15px 0;
   padding: 15px;
@@ -351,7 +345,6 @@ button:hover {
   opacity: 0.9;
 }
 
-/* Кнопки действий */
 button[type="submit"] {
   background: #3498db;
   color: white;
@@ -371,7 +364,6 @@ button[type="submit"] {
   color: white;
 }
 
-/* Кнопки действий */
 .remove-btn[type="submit"] {
   background: #3498db;
   color: white;
@@ -395,7 +387,6 @@ button[type="submit"] {
   background: #f52812;
 }
 
-/* Участники */
 .members-section {
   margin-top: 15px;
 }
@@ -505,7 +496,6 @@ button[type="submit"] {
   color: white;
 }
 
-/* Ошибки */
 .error {
   color: #e74c3c;
   margin-top: 10px;
@@ -514,7 +504,6 @@ button[type="submit"] {
   border-radius: 4px;
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
   .profile {
     padding: 10px;

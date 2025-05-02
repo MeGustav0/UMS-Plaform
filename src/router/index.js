@@ -3,8 +3,7 @@ import store from '@/store'
 import Home from '@/views/Home.vue'
 import ProjectView from '@/views/ProjectView.vue'
 import Login from '@/views/Login.vue'
-import Profile from '../views/Profile.vue'
-import NotFound from '@/views/NotFound.vue'
+
 
 const routes = [
   {
@@ -52,22 +51,20 @@ router.beforeEach(async (to, from, next) => {
   const isAuth = store.getters['auth/isAuthenticated'];
   const savedUser = localStorage.getItem("auth");
 
-  // ✅ если пользователь не авторизован, но есть в localStorage
   if (!isAuth && savedUser) {
     store.commit('auth/SET_USER', JSON.parse(savedUser));
     await store.dispatch('organizations/fetchOrganizations');
     await store.dispatch('projects/fetchProjects');
   }
 
-  // ✅ Защита доступа к проекту
+  
   if (to.meta.requiresOrgAuth) {
     const projectId = to.params.id;
     const project = store.getters['projects/getProjectById'](projectId);
 
-    if (!project) {
-      // можно показать заглушку или просто перейти домой
-      return next('/404');
-    }
+    // if (!project) {
+    //   return next('/404');
+    // }
 
     const userRole = store.getters['organizations/getUserRole'](
       project.orgId,

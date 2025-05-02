@@ -22,14 +22,12 @@ export default {
 
     CLEAR_USER(state) {
       state.user = null;
-      // localStorage.removeItem("auth");
     },
 
     UPDATE_USER_PROJECTS(state, projectId) {
       if (!state.user) return;
       state.user.projects = state.user.projects || [];
       state.user.projects.push(projectId);
-      // localStorage.setItem("auth", JSON.stringify(state.user));
     },
   },
 
@@ -52,7 +50,7 @@ export default {
           name,
         });
 
-        const userId = data.userId; // ✅ вот он
+        const userId = data.userId;
 
         commit("SET_USER", {
           id: userId,
@@ -61,7 +59,7 @@ export default {
         });
 
         await new Promise((resolve) => setTimeout(resolve, 300));
-        console.log("fetch orgs for", userId); // ✅ теперь всё ок
+        console.log("fetch orgs for", userId);
         await dispatch("organizations/fetchOrganizations", null, {
           root: true,
         });

@@ -175,6 +175,7 @@ export default {
         alert("Пожалуйста, выберите пользователя!");
         return;
       }
+
       const exists = this.localProject.members.some(
         (m) => m.userId === this.selectedUserId
       );
@@ -182,18 +183,28 @@ export default {
         alert("Этот пользователь уже добавлен в проект!");
         return;
       }
+
+      const user = this.$store.getters["users/getUserById"](
+        this.selectedUserId
+      );
+
       this.localProject.members.push({
         userId: this.selectedUserId,
+        name: user?.name || "",
+        email: user?.email || "",
         role: this.selectedRole || "member",
       });
 
-      // Сбросить выбор
       this.selectedUserId = "";
       this.selectedRole = "member";
     },
+    getUserName(userId) {
+      const user = this.$store.getters["users/getUserById"](userId);
+      return user?.name || "Неизвестный";
+    },
     getUserEmail(userId) {
-      const user = this.$store.state.auth.users.find((u) => u.id === userId);
-      return user?.email || "Нет почты";
+      const user = this.$store.getters["users/getUserById"](userId);
+      return user?.email || "—";
     },
     // Удаление участника
     removeMember(userId) {
@@ -208,25 +219,29 @@ export default {
       );
     },
 
-    // Сохранение изменений
-    save() {
-      this.$store.commit("projects/UPDATE_PROJECT", this.localProject);
-      this.$emit("close");
-    },
-
-    // Удаление проекта
-    deleteProject() {
-      if (confirm("Удалить проект?")) {
-        this.$store.commit("projects/DELETE_PROJECT", this.localProject.id);
+    async save() {
+      try {
+        await this.$store.dispatch("projects/updateProject", this.localProject);
         this.$emit("close");
-        this.$router.push("/");
+      } catch (err) {
+        console.error("Ошибка при сохранении проекта:", err);
+        alert("Не удалось сохранить проект");
       }
     },
 
-    // Получение имени пользователя
-    getUserName(userId) {
-      const user = this.$store.state.auth.users.find((u) => u.id === userId);
-      return user?.name || "Неизвестный";
+    async deleteProject() {
+      if (!confirm("Удалить проект?")) return;
+      try {
+        await this.$store.dispatch(
+          "projects/deleteProject",
+          this.localProject.id
+        );
+        this.$emit("close");
+        this.$router.push("/");
+      } catch (err) {
+        console.error("Ошибка при удалении проекта:", err);
+        alert("Не удалось удалить проект");
+      }
     },
     isMemberUsed(userId) {
       const project = this.$store.getters["projects/getProjectById"](
@@ -249,10 +264,11 @@ export default {
     toggleRoleMenu(member) {
       member.showRoleMenu = !member.showRoleMenu;
     },
-    changeProjectMemberRole(member, newRole) {
+    async changeProjectMemberRole(member, newRole) {
       member.role = newRole;
       member.showRoleMenu = false;
-      this.$store.commit("projects/UPDATE_MEMBER_ROLE", {
+
+      await this.$store.dispatch("projects/updateProjectMemberRole", {
         projectId: this.project.id,
         userId: member.userId,
         role: newRole,

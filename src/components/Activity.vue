@@ -132,14 +132,14 @@ export default {
         endDate: null,
         activityId: this.activity.id,
       };
-      this.$store.commit("projects/ADD_TASK", {
+      this.$store.dispatch("projects/addTask", {
         projectId: this.projectId,
         activityId: this.activity.id,
         task: newTask,
       });
     },
     deleteTask(taskId) {
-      this.$store.commit("projects/DELETE_TASK", {
+      this.$store.dispatch("projects/deleteTask", {
         projectId: this.projectId,
         activityId: this.activity.id,
         taskId,
@@ -205,19 +205,18 @@ export default {
         updatedTask.closedAt = null;
       }
 
-      this.$store.commit("projects/UPDATE_TASK", {
+      this.$store.dispatch("projects/updateTask", {
         projectId: this.projectId,
         activityId: this.activity.id,
         task: updatedTask,
       });
     },
     getUserName(userId) {
-      if (!userId) return "—";
-      const user = this.$store.state.auth.users.find((u) => u.id == userId);
-      return user?.name || "—";
+      const user = this.$store.getters["users/getUserById"](userId);
+      return user?.name || "Неизвестный";
     },
     priorityIcon(priority) {
-      const size = 16; // размер кружка
+      const size = 16;
       const color =
         {
           low: "#70b013",
@@ -232,13 +231,12 @@ export default {
     `;
     },
     togglePriorityMenu(task) {
-      // Показать/скрыть меню для конкретной задачи
       task.showPriorityMenu = !task.showPriorityMenu;
     },
     changePriority(task, newPriority) {
       task.priority = newPriority;
 
-      this.$store.commit("projects/UPDATE_TASK", {
+      this.$store.dispatch("projects/updateTask", {
         projectId: this.projectId,
         activityId: this.activity.id,
         task: { ...task },
@@ -264,7 +262,6 @@ export default {
   box-shadow: -3px 4px 1px 2px rgba(34, 60, 80, 0.2);
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
   .activity {
     resize: vertical;
@@ -299,7 +296,7 @@ export default {
 
 .activity-header {
   background-color: #ff5d98e6;
-  min-width: 290px;
+  min-width: 254px;
   padding: 10px;
   box-shadow: -3px 4px 1px 0px rgba(34, 60, 80, 0.2);
 }
@@ -338,7 +335,7 @@ export default {
 
 .add-task {
   font-weight: 600;
-  width: 100%;
+  width: 20px;
   height: 132px;
   border: 0;
   opacity: 0.05;

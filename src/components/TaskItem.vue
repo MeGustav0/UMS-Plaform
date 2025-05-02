@@ -29,8 +29,7 @@ export default {
       return date ? new Date(date).toLocaleDateString("ru-RU") : "—";
     },
     getUserName(userId) {
-      const user = this.$store.state.auth.users.find((u) => u.id === userId);
-      return user?.name || "Не назначен";
+      return this.$store.getters["users/getUserById"](userId)?.name || "Неизвестный";
     },
     openEdit() {
       this.$emit("edit", {

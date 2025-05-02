@@ -30,19 +30,24 @@
                 :projectId="projectId"
                 @delete="handleDeleteActivity"
               />
-              <button class="add-activity" @click="addActivity">
+              <button
+                class="add-activity"
+                @click="addActivity"
+                v-if="canEditProject"
+              >
                 + Активность
               </button>
             </div>
             <div>
-              <ReleasesContainer
-                :releases="projectReleases"
-                @add-story="handleAddStory"
-              />
+              <ReleasesContainer :project="project" />
             </div>
 
             <div>
-              <button class="add-realese" @click="createRelease">
+              <button
+                class="add-realese"
+                @click="createRelease"
+                v-if="canEditProject"
+              >
                 Создать релиз
               </button>
             </div>
@@ -78,7 +83,6 @@
     v-if="showStoryModal"
     :story="editingItem"
     :projectMembers="project.members || []"
-    @save="handleSaveStory"
     @close="showStoryModal = false"
   />
 </template>
@@ -127,6 +131,19 @@ export default {
       scrollStartY: 0,
     };
   },
+  watch: {
+  projectId: {
+    immediate: true,
+    handler(id) {
+      if (id) {
+        this.$store.dispatch("projects/fetchProjects").then(() => {
+          this.$store.dispatch("projects/subscribeToProject", id);
+        });
+        this.$store.dispatch("releases/subscribeToReleases", id);
+      }
+    }
+  }
+},
   computed: {
     project() {
       return (
@@ -135,6 +152,12 @@ export default {
     },
     projectId() {
       return this.$route.params.id;
+    },
+    projectReleases() {
+      return (
+        this.$store.getters["releases/getReleasesByProject"](this.project.id) ||
+        []
+      );
     },
     isAdmin() {
       return this.$store.state.auth.user?.role === "admin";
@@ -154,19 +177,17 @@ export default {
       );
     },
     canEditProject() {
-      if (!this.project || !this.project.members) return false;
+      const project = this.$store.getters["projects/getProjectById"](
+        this.$route.params.id
+      );
+      if (!project || !project.members) return false;
+
       const userId = this.$store.state.auth.user?.id;
-      const member = this.project.members.find((m) => m.userId == userId);
-      return member && ["admin", "manager"].includes(member.role);
-    },
-    projectReleases() {
-      return this.$store.getters["releases/projectReleases"](this.projectId);
-    },
-    safeActivitiesLength() {
-      return this.project?.activities?.length || 0;
+      const member = project.members.find((m) => m.userId === userId);
+
+      return !!member && ["admin", "manager"].includes(member.role);
     },
     chartData() {
-      // Пример вычисления данных для диаграммы на основе активностей и задач проекта
       const tasks = this.project.activities.flatMap(
         (activity) => activity.tasks
       );
@@ -198,13 +219,13 @@ export default {
         endDate: null,
         tasks: [],
       };
-      this.$store.commit("projects/ADD_ACTIVITY", {
+      this.$store.dispatch("projects/addActivity", {
         projectId: this.project.id,
         activity: newActivity,
       });
     },
     handleDeleteActivity(activityId) {
-      this.$store.commit("projects/DELETE_ACTIVITY", {
+      this.$store.dispatch("projects/deleteActivity", {
         projectId: this.projectId,
         activityId: activityId,
       });
@@ -218,12 +239,12 @@ export default {
     handleSave(updatedData) {
       console.log("Saving:", updatedData);
       if (this.editingType === "activity") {
-        this.$store.commit("projects/UPDATE_ACTIVITY", {
+        this.$store.dispatch("projects/updateActivity", {
           projectId: this.projectId,
           activity: updatedData,
         });
       } else if (this.editingType === "task") {
-        this.$store.commit("projects/UPDATE_TASK", {
+        this.$store.dispatch("projects/updateTask", {
           projectId: this.projectId,
           activityId: updatedData.activityId,
           task: updatedData,
@@ -231,45 +252,16 @@ export default {
       }
       this.showEditModal = false;
     },
-    createRelease() {
-      this.$store.dispatch("releases/createRelease", {
+    async createRelease() {
+      await this.$store.dispatch("releases/createRelease", {
         projectId: this.projectId,
         name: "Новый релиз",
       });
-    },
-    handleAddStory({ releaseId, taskPath }) {
-      this.newStoryReleaseId = releaseId;
-      this.newStoryTaskPath = taskPath;
-      this.editingItem = {
-        id: null,
-        title: "",
-        priority: "medium",
-        status: "todo",
-        assignee: "",
-        description: "",
-        createdAt: new Date().toISOString(),
-        endDate: null,
-        comments: [],
-      };
-      this.editingType = "story";
-      this.showStoryModal = true;
-    },
-    handleSaveStory(updatedStory) {
-      if (!this.newStoryReleaseId || !this.newStoryTaskPath) return;
 
-      updatedStory.id = generateId(); // создаём ID
-      this.$store.commit("releases/ADD_STORY", {
-        releaseId: this.newStoryReleaseId,
-        taskPath: this.newStoryTaskPath,
-        story: updatedStory,
-      });
-
-      this.showStoryModal = false;
-      this.newStoryReleaseId = null;
-      this.newStoryTaskPath = null;
+      await this.$store.dispatch("releases/fetchReleases", this.projectId);
     },
     startDragging(event) {
-      if (event.button !== 2) return; // Только правая кнопка
+      if (event.button !== 2) return;
       this.isRightMouseDown = true;
       this.movedAfterRightClick = false;
       this.lastRightClickPos = { x: event.clientX, y: event.clientY };
@@ -308,7 +300,7 @@ export default {
     },
     onContextMenu(event) {
       if (this.movedAfterRightClick) {
-        event.preventDefault(); // Блокируем если была тяга мыши
+        event.preventDefault();
       }
     },
   },
@@ -319,10 +311,15 @@ export default {
     );
   },
   beforeUnmount() {
-    this.$refs.scrollContainer.removeEventListener(
-      "contextmenu",
-      this.onContextMenu
-    );
+    if (this.onResize) {
+      window.removeEventListener("resize", this.onResize);
+    }
+
+    if (this.$refs.someElement) {
+      this.$refs.someElement.removeEventListener("...", this.handler);
+    }
+    this.$store.dispatch("projects/unsubscribeFromProject");
+    this.$store.dispatch("releases/unsubscribeFromReleases");
   },
 };
 </script>
